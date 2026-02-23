@@ -123,6 +123,12 @@ namespace Arrowgene.MonsterHunterOnline.Service.CsProto.Core
         public static CsCsProtoStructurePacket<MonsterActiveState> MonsterActiveState =>
             new(CS_CMD_ID.CS_CMD_MONSTER_ACTIVE);
 
+        public static CsCsProtoStructurePacket<MonsterSequenceState> MonsterSequenceState =>
+            new(CS_CMD_ID.CS_CMD_BATTLE_MONSTER_SEQUENCESTATE);
+
+        public static CsCsProtoStructurePacket<CtrledMonsterAppearNtf> CtrledMonsterAppearNtf =>
+            new(CS_CMD_ID.CS_CMD_BATTLE_CTRLED_MONSTER_APPEAR_NTF); 
+
         /// <summary>
         /// Looks like client ignores this, send CS_CMD_SCENEOBJ_APPEAR_NTF_LIST instead
         /// </summary>
@@ -150,6 +156,9 @@ namespace Arrowgene.MonsterHunterOnline.Service.CsProto.Core
         public static CsCsProtoStructurePacket<ItemMgrSwapItemNtf> ItemMgrSwapItemNtf =>
             new(CS_CMD_ID.CS_CMD_ITEMMGR_SWAP_ITEM_NTF);
 
+        public static CsCsProtoStructurePacket<ItemMgrUseItemReq> ItemMgrUseItemReq =>
+            new(CS_CMD_ID.CS_CMD_ITEMMGR_USE_ITEM_REQ);
+
         public static CsCsProtoStructurePacket<MainInstanceAgreeOptRsp> MainInstanceAgreeOptRsp =>
             new(CS_CMD_ID.CS_CMD_MAIN_INSTANCE_AGREE_OPT_RSP);
 
@@ -170,5 +179,59 @@ namespace Arrowgene.MonsterHunterOnline.Service.CsProto.Core
 
         public static CsCsProtoStructurePacket<MainInstanceClose> MainInstanceClose =>
             new(CS_CMD_ID.CS_CMD_MAIN_INSTANCE_CLOSE);
+
+        public static CsCsProtoStructurePacket<SkillEffectInfo> SkillEffectInfo =>
+            new(CS_CMD_ID.CS_CMD_SKILL_EFFECT_SYNC);
+
+        public static CsCsProtoStructurePacket<HealthSyncNtf> HealthSyncNtf =>
+            new(CS_CMD_ID.CS_CMD_HEALTH_SYNC);
+
+        public static CsCsProtoStructurePacket<ManufactureProduceRsp> ManufactureProduceRsp =>
+            new(CS_CMD_ID.CS_CMD_MANUFACTURE_PRODUCE_RSP);
+
+        public static CsCsProtoStructurePacket<ManufactureProduceReq> ManufactureProduceReq =>
+            new(CS_CMD_ID.CS_CMD_MANUFACTURE_PRODUCE_REQ);
+
+        public static CsCsProtoStructurePacket<ChangeAmmoRsp> ChangeAmmoRsp =>
+            new(CS_CMD_ID.CS_CMD_CHANGE_AMMO_RSP);
+
+        public static CsCsProtoStructurePacket<ChangeAmmoReq> ChangeAmmoReq =>
+            new(CS_CMD_ID.CS_CMD_CHANGE_AMMO_REQ);
+
+        public static CsCsProtoStructurePacket<PlayerAmmoChangeReq> PlayerAmmoChangeReq =>
+            new(CS_CMD_ID.CS_CMD_PLAYER_AMMO_CHANGE_REQ);
+
+        public static CsCsProtoStructurePacket<PlayerAmmoChangeRsp> PlayerAmmoChangeRsp =>
+            new(CS_CMD_ID.CS_CMD_PLAYER_AMMO_CHANGE_RSP);
+
+        public static CsCsProtoStructurePacket<ReloadAmmoReq> ReloadAmmoReq =>
+            new(CS_CMD_ID.CS_CMD_RELOAD_AMMO_REQ);
+
+        public static CsCsProtoStructurePacket<ReloadAmmoRsp> ReloadAmmoRsp =>
+            new(CS_CMD_ID.CS_CMD_RELOAD_AMMO_RSP);
+
+        public static CsCsProtoStructurePacket<ProjectileLaunchNtfList> ProjectileLaunchNtfList =>
+            new(CS_CMD_ID.CS_CMD_PROJECTILE_LAUNCH_NTF_LIST);
+
+        public static CsCsProtoStructurePacket<ProjectileLaunchNtf> ProjectileLaunchNtf =>
+            new(CS_CMD_ID.CS_CMD_PROJECTILE_LAUNCH_NTF);
+
+        public static CsCsProtoStructurePacket<BattleDMG> BattleDMG =>
+            new(CS_CMD_ID.CS_CMD_BATTLE_DMG_VERIFY);
+
+        public static CsCsProtoStructurePacket<DMGResult> DMGResult =>
+            new(CS_CMD_ID.CS_CMD_BATTLE_DMGRESULT);
+
+        public static CsCsProtoStructurePacket<BattlePVPDMG> BattlePVPDMG =>
+            new(CS_CMD_ID.CS_CMD_BATTLE_PVP_DMG);
+
+        public static CsCsProtoStructurePacket<BattlePVPDMGNtf> BattlePVPDMGNtf =>
+            new(CS_CMD_ID.CS_CMD_BATTLE_PVP_DMG_NTF);
+
+        public static CsCsProtoStructurePacket<CSGuideBookAutoFirstOpenReq> CSGuideBookAutoFirstOpenReq =>
+            new(CS_CMD_ID.C2S_CMD_GUIDE_BOOK_AUTO_FIRST_OPEN_REQ);
+
+        public static CsCsProtoStructurePacket<SCGuideBookAutoFirstOpenRsp> SCGuideBookAutoFirstOpenRsp =>
+            new(CS_CMD_ID.S2C_CMD_GUIDE_BOOK_AUTO_FIRST_OPEN_RSP);
     }
 }

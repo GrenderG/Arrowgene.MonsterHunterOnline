@@ -1186,14 +1186,6 @@ namespace Arrowgene.MonsterHunterOnline.Service.CsProto
         }
 
         /// <summary>
-        /// 人物换子弹类型申请回包
-        /// </summary>
-        public static CsTPacket<CSPlayerAmmoChangeRsp> PlayerAmmoChangeRsp(CSPlayerAmmoChangeRsp structure)
-        {
-            return new CsTPacket<CSPlayerAmmoChangeRsp>(CS_CMD_ID.CS_CMD_PLAYER_AMMO_CHANGE_RSP, structure);
-        }
-
-        /// <summary>
         /// AG同步消息
         /// </summary>
         public static CsTPacket<CSAGSyncInfo> AGSyncMsg(CSAGSyncInfo structure)
@@ -1219,14 +1211,6 @@ namespace Arrowgene.MonsterHunterOnline.Service.CsProto
         }
 
         /// <summary>
-        /// 人物换子弹类型申请
-        /// </summary>
-        public static CsTPacket<CSPlayerAmmoChangeReq> PlayerAmmoChangeReq(CSPlayerAmmoChangeReq structure)
-        {
-            return new CsTPacket<CSPlayerAmmoChangeReq>(CS_CMD_ID.CS_CMD_PLAYER_AMMO_CHANGE_REQ, structure);
-        }
-
-        /// <summary>
         /// FSM状态同步
         /// </summary>
         public static CsTPacket<CSFSMInfo> FSMMsg(CSFSMInfo structure)
@@ -1248,14 +1232,6 @@ namespace Arrowgene.MonsterHunterOnline.Service.CsProto
         public static CsTPacket<CSPlayerReviveRsp> PlayerReviveRsp(CSPlayerReviveRsp structure)
         {
             return new CsTPacket<CSPlayerReviveRsp>(CS_CMD_ID.CS_CMD_PLAYER_REVIVE_RSP, structure);
-        }
-
-        /// <summary>
-        /// 飞行道具出现列表
-        /// </summary>
-        public static CsTPacket<CSProjectileLaunchNtfList> ProjectileLaunchNtfList(CSProjectileLaunchNtfList structure)
-        {
-            return new CsTPacket<CSProjectileLaunchNtfList>(CS_CMD_ID.CS_CMD_PROJECTILE_LAUNCH_NTF_LIST, structure);
         }
 
         /// <summary>
@@ -1719,38 +1695,6 @@ namespace Arrowgene.MonsterHunterOnline.Service.CsProto
         }
 
         /// <summary>
-        /// 血量同步
-        /// </summary>
-        public static CsTPacket<CSHealthSyncNtf> HealthSyncNtf(CSHealthSyncNtf structure)
-        {
-            return new CsTPacket<CSHealthSyncNtf>(CS_CMD_ID.CS_CMD_HEALTH_SYNC, structure);
-        }
-
-        /// <summary>
-        /// 装载弹药请求
-        /// </summary>
-        public static CsTPacket<CSReloadAmmoReq> ReloadAmmoReq(CSReloadAmmoReq structure)
-        {
-            return new CsTPacket<CSReloadAmmoReq>(CS_CMD_ID.CS_CMD_RELOAD_AMMO_REQ, structure);
-        }
-
-        /// <summary>
-        /// 装载弹药响应
-        /// </summary>
-        public static CsTPacket<CSReloadAmmoRsp> ReloadAmmoRsp(CSReloadAmmoRsp structure)
-        {
-            return new CsTPacket<CSReloadAmmoRsp>(CS_CMD_ID.CS_CMD_RELOAD_AMMO_RSP, structure);
-        }
-
-        /// <summary>
-        /// 飞行道具发射
-        /// </summary>
-        public static CsTPacket<CSProjectileLaunchNtf> ProjectileLaunch(CSProjectileLaunchNtf structure)
-        {
-            return new CsTPacket<CSProjectileLaunchNtf>(CS_CMD_ID.CS_CMD_PROJECTILE_LAUNCH_NTF, structure);
-        }
-
-        /// <summary>
         /// 特效同步
         /// </summary>
         public static CsTPacket<CSEffectSYNC> EffectSYNC(CSEffectSYNC structure)
@@ -1772,22 +1716,6 @@ namespace Arrowgene.MonsterHunterOnline.Service.CsProto
         public static CsTPacket<CSUpdateRushState> UpdateRushState(CSUpdateRushState structure)
         {
             return new CsTPacket<CSUpdateRushState>(CS_CMD_ID.CS_CMD_UPDATE_RUSHSTATE, structure);
-        }
-
-        /// <summary>
-        /// 切换弹药请求
-        /// </summary>
-        public static CsTPacket<CSChangeAmmoReq> ChangeAmmoReq(CSChangeAmmoReq structure)
-        {
-            return new CsTPacket<CSChangeAmmoReq>(CS_CMD_ID.CS_CMD_CHANGE_AMMO_REQ, structure);
-        }
-
-        /// <summary>
-        /// 切换弹药响应
-        /// </summary>
-        public static CsTPacket<CSChangeAmmoRsp> ChangeAmmoRsp(CSChangeAmmoRsp structure)
-        {
-            return new CsTPacket<CSChangeAmmoRsp>(CS_CMD_ID.CS_CMD_CHANGE_AMMO_RSP, structure);
         }
 
         /// <summary>
@@ -1959,14 +1887,6 @@ namespace Arrowgene.MonsterHunterOnline.Service.CsProto
         }
 
         /// <summary>
-        /// 战斗伤害消息
-        /// </summary>
-        public static CsTPacket<CSBattlePVPDMG> BattlePVPDMG(CSBattlePVPDMG structure)
-        {
-            return new CsTPacket<CSBattlePVPDMG>(CS_CMD_ID.CS_CMD_BATTLE_PVP_DMG, structure);
-        }
-
-        /// <summary>
         /// 战斗伤害
         /// </summary>
         public static CsTPacket<CSDMGContext> BattleDMGContext(CSDMGContext structure)
@@ -1989,15 +1909,6 @@ namespace Arrowgene.MonsterHunterOnline.Service.CsProto
         {
             return new CsTPacket<CSPaidContributeBoxRsp>(CS_CMD_ID.CS_CMD_PAID_CONTRIBUTE_BOX_RSP, structure);
         }
-
-        /// <summary>
-        /// 战斗伤害消息
-        /// </summary>
-        public static CsTPacket<CSBattlePVPDMGNtf> BattlePVPDMGNtf(CSBattlePVPDMGNtf structure)
-        {
-            return new CsTPacket<CSBattlePVPDMGNtf>(CS_CMD_ID.CS_CMD_BATTLE_PVP_DMG_NTF, structure);
-        }
-
 
         /// <summary>
         /// 被控制怪物出现通知
@@ -3185,14 +3096,6 @@ namespace Arrowgene.MonsterHunterOnline.Service.CsProto
         }
 
         /// <summary>
-        /// 技能效果同步
-        /// </summary>
-        public static CsTPacket<CSSkillEffectInfo> SkillEffectSync(CSSkillEffectInfo structure)
-        {
-            return new CsTPacket<CSSkillEffectInfo>(CS_CMD_ID.CS_CMD_SKILL_EFFECT_SYNC, structure);
-        }
-
-        /// <summary>
         /// 技能结果同步
         /// </summary>
         public static CsTPacket<CSSkillResultList> SkillResultSync(CSSkillResultList structure)
@@ -3751,14 +3654,6 @@ namespace Arrowgene.MonsterHunterOnline.Service.CsProto
         public static CsTPacket<CSManufactureProduceReq> ManufactureProduceReq(CSManufactureProduceReq structure)
         {
             return new CsTPacket<CSManufactureProduceReq>(CS_CMD_ID.CS_CMD_MANUFACTURE_PRODUCE_REQ, structure);
-        }
-
-        /// <summary>
-        /// 根据配方进行生产结果
-        /// </summary>
-        public static CsTPacket<CSManufactureProduceRsp> ManufactureProduceRsp(CSManufactureProduceRsp structure)
-        {
-            return new CsTPacket<CSManufactureProduceRsp>(CS_CMD_ID.CS_CMD_MANUFACTURE_PRODUCE_RSP, structure);
         }
 
         /// <summary>

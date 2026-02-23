@@ -77,8 +77,10 @@ public class MainInstanceAgreeOptReqHandler : CsProtoStructureHandler<MainInstan
         townServerInitNtf.Structure.LevelEnterType = 0;
         townServerInitNtf.Structure.InstanceInitInfo = instanceInitInfo.Structure;
         // client.SendCsProtoStructurePacket(townServerInitNtf);
-        client.State.prevLevelId = client.State.levelId;
-        client.State.levelId = client.State.MainInstanceLevelId;
+        //client.State.prevLevelId = client.State.levelId;
+        //client.State.levelId = client.State.MainInstanceLevelId;
+        client.State.prevLevelId = client.State.MainInstanceLevelId;
+        client.State.levelId = client.State.InitLevelId;
 
 
         CsCsProtoStructurePacket<EnterInstanceRsp> enterInstanceRsp = CsProtoResponse.EnterInstanceRsp;
@@ -86,7 +88,8 @@ public class MainInstanceAgreeOptReqHandler : CsProtoStructureHandler<MainInstan
         enterInstanceRsp.Structure.RoleId = (int)client.Character.Id;
         enterInstanceRsp.Structure.InstanceId = 1;
         enterInstanceRsp.Structure.BattleSvr = $"127.0.0.1:{_setting.BattleServerPort}";
-        enterInstanceRsp.Structure.ServiceId = 1;
+        //enterInstanceRsp.Structure.ServiceId = 1;
+        enterInstanceRsp.Structure.ServiceId = client.State.MainInstanceLevelId; //Hack to pass the level ID to InstanceVerifyReqHandler
         enterInstanceRsp.Structure.Key = "BtlSvr01";
         enterInstanceRsp.Structure.InstanceInfo = instanceInitInfo.Structure;
         enterInstanceRsp.Structure.SameBS = 1;

@@ -1,43 +1,28 @@
-﻿using Arrowgene.Logging;
+﻿using Arrowgene.MonsterHunterOnline.Service.CsProto;
 using Arrowgene.MonsterHunterOnline.Service.CsProto.Constant;
 using Arrowgene.MonsterHunterOnline.Service.CsProto.Core;
-using Arrowgene.MonsterHunterOnline.Service.CsProto.Enums;
 using Arrowgene.MonsterHunterOnline.Service.CsProto.Structures;
 using Microsoft.VisualBasic.FileIO;
+using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 
-namespace Arrowgene.MonsterHunterOnline.Service.CsProto.Handler;
+namespace Arrowgene.MonsterHunterOnline.Service.System.ChatSystem.Command.Commands;
 
-public class LeaveInstanceReqHandler : CsProtoStructureHandler<LeaveInstanceReq>
+/// <summary>
+/// Sends CS_CMD_TOWN_SERVER_INIT_NTF packet
+/// </summary>
+public class TownInitCommand : ChatCommand
 {
-    private static readonly ServiceLogger Logger =
-        LogProvider.Logger<ServiceLogger>(typeof(LeaveInstanceReqHandler));
+    public override AccountType Account => AccountType.User;
+    public override string Key => "town_init";
+    public override string HelpText => "usage: `/town_init` - Sends CS_CMD_TOWN_SERVER_INIT_NTF packet";
 
-    public override CS_CMD_ID Cmd => CS_CMD_ID.CS_CMD_LEAVE_INSTANCE_REQ;
-
-    public LeaveInstanceReqHandler()
+    public override void Execute(string[] command, Client client, ChatMessage message, List<ChatMessage> responses)
     {
-    }
 
-    public override void Handle(Client client, LeaveInstanceReq req)
-    {
-        CsCsProtoStructurePacket<LeaveInstanceRsp> rsp = CsProtoResponse.LeaveInstanceRsp;
-        client.SendCsProtoStructurePacket(rsp);
-        
-        
-        CsCsProtoStructurePacket<MainInstanceClose> mainInstanceClose = CsProtoResponse.MainInstanceClose;
-        mainInstanceClose.Structure.LevelId = 1;
-        mainInstanceClose.Structure.RoomId = 1;
-        mainInstanceClose.Structure.Reason = 0;
-        mainInstanceClose.Structure.TriggerNetId = 1;
-        mainInstanceClose.Structure.RoleName = client.Character.Name;
-        client.SendCsProtoStructurePacket(mainInstanceClose);
-        
-        
-        client.State.SelectRoleTrigger = false;
-        
-        
+
         CsCsProtoStructurePacket<TownInstanceVerifyRsp> townServerInitNtf = CsProtoResponse.TownServerInitNtf;
         TownInstanceVerifyRsp verifyRsp = townServerInitNtf.Structure;
         verifyRsp.ErrNo = 0;
@@ -45,14 +30,27 @@ public class LeaveInstanceReqHandler : CsProtoStructureHandler<LeaveInstanceReq>
         verifyRsp.LevelEnterType = 0;
 
         InstanceInitInfo instanceInitInfo = verifyRsp.InstanceInitInfo;
-        instanceInitInfo.BattleGroundId = 0;
-        instanceInitInfo.LevelId = 150301;
+        instanceInitInfo.BattleGroundId = 1;
+        //instanceInitInfo.LevelId = 180101;
 
-        // TODO hack
-        instanceInitInfo.LevelId = client.State.InitLevelId;
+        if (client.State.levelId == 100403)
+            instanceInitInfo.LevelId = 180101; //town
+        else
+            instanceInitInfo.LevelId = 100403;
+        //instanceInitInfo.LevelId = 140900; //Weapon Training with NPCs
+        if (command.Length > 0 && int.TryParse(command[0], out int level))
+            instanceInitInfo.LevelId = level;
+        else if (client.State.levelId == 0)
+            instanceInitInfo.LevelId = 140900;
+        else
+            instanceInitInfo.LevelId = client.State.levelId;
 
+        //instanceInitInfo.LevelId = 140501;
+        //instanceInitInfo.LevelId = client.State.levelId;
         instanceInitInfo.CreateMaxPlayerCount = 4;
         instanceInitInfo.GameMode = GameMode.Town;
+        //instanceInitInfo.GameMode = GameMode.Story;
+        //instanceInitInfo.GameMode = GameMode.ExtremeA;
         instanceInitInfo.TimeType = TimeType.Noon;
         instanceInitInfo.WeatherType = WeatherType.Sunny;
         instanceInitInfo.Time = 1;
@@ -63,7 +61,7 @@ public class LeaveInstanceReqHandler : CsProtoStructureHandler<LeaveInstanceReq>
         string staticFolder = Path.Combine(Util.ExecutingDirectory(), "Files\\Static");
         string csvSpawnPointsPath = Path.Combine(staticFolder, "SpawnPoints.csv");
         //int level = client.State.levelId;
-        int level = instanceInitInfo.LevelId;
+        level = instanceInitInfo.LevelId;
         using (TextFieldParser parser = new TextFieldParser(csvSpawnPointsPath))
         {
             string level_comp = level.ToString();
@@ -98,26 +96,24 @@ public class LeaveInstanceReqHandler : CsProtoStructureHandler<LeaveInstanceReq>
                     float rotateZ = float.Parse(rotateValues[2], CultureInfo.InvariantCulture);
                     float rotateW = float.Parse(rotateValues[3], CultureInfo.InvariantCulture);
 
-                    CSQuatT targetPos = new CSQuatT()
+                    client.SendCsPacket(NewCsPacket.PlayerTeleport(new CSPlayerTeleport()
                     {
-                        q = new CSQuat()
+                        SyncTime = 0,
+                        NetObjId = client.Character.Id,
+                        Region = client.State.levelId,
+                        TargetPos = new CSQuatT()
                         {
-                            v = new CSVec3() { x = rotateX, y = rotateY, z = rotateZ },
-                            w = rotateW
+                            q = new CSQuat()
+                            {
+                                v = new CSVec3() { x = rotateX, y = rotateY, z = rotateZ },
+                                w = rotateW
+                            },
+                            t = new CSVec3() { x = (float)posX, y = (float)posY, z = (float)posZ }
                         },
-                        t = new CSVec3() { x = (float)posX, y = (float)posY, z = (float)posZ }
-                    };
-
-                    Logger.Debug($"Warp point found at {posX} {posY} {posZ} for level {level}");
-
-                    CsCsProtoStructurePacket<PlayerTeleport> PlayerTeleport = CsProtoResponse.PlayerTeleport;
-                    PlayerTeleport.Structure.SyncTime = 1;
-                    PlayerTeleport.Structure.NetObjId = client.Character.Id;
-                    PlayerTeleport.Structure.Region = client.State.MainInstanceLevelId;
-                    PlayerTeleport.Structure.TargetPos = targetPos;
-                    PlayerTeleport.Structure.ParentGuid = 1;
-                    PlayerTeleport.Structure.InitState = 1;
-                    client.SendCsProtoStructurePacket(PlayerTeleport);
+                        ParentGUID = 1,
+                        InitState = 1
+                    }
+                    ));
 
                     break;
                 }
@@ -125,6 +121,8 @@ public class LeaveInstanceReqHandler : CsProtoStructureHandler<LeaveInstanceReq>
         }
 
         client.SendCsProtoStructurePacket(townServerInitNtf);
+
+        // TODO, perhaps refactor to a change level method somewhere to handle
         client.State.prevLevelId = client.State.levelId;
         client.State.levelId = instanceInitInfo.LevelId;
     }
