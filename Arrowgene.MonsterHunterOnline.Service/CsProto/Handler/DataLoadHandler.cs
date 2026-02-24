@@ -84,9 +84,7 @@ public class DataLoadHandler : CsProtoStructureHandler<RemoteDataLoadReq>
         if (req.RemoteDataType == ROMTE_DATA_TYPE.LEVELINFO_DATA_TYPE)
         {
             if (!client.State.SelectRoleTrigger)
-            {
                 return;
-            }
 
             client.State.SelectRoleTrigger = false;
             CsCsProtoStructurePacket<TownInstanceVerifyRsp> townServerInitNtf = CsProtoResponse.TownServerInitNtf;

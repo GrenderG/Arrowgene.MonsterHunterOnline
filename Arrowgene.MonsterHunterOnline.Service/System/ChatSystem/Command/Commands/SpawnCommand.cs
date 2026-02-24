@@ -22,7 +22,7 @@ namespace Arrowgene.MonsterHunterOnline.Service.System.ChatSystem.Command.Comman
         //public override AccountType Account => AccountType.Admin;
         public override AccountType Account => AccountType.User;
         public override string Key => "spawn";
-        public override string HelpText => "usage: /spawn <id> <monster|battle|playerlist|disappear> <spawnType> [name]";
+        public override string HelpText => "usage: /spawn [id] [monster|battle|playerlist|disappear] [spawnType] [name]";
 
         public override void Execute(string[] command, Client client, ChatMessage message, List<ChatMessage> responses)
         {

@@ -32,8 +32,8 @@ public class ManufactureProduceReqHandler : CsProtoStructureHandler<ManufactureP
         rsp.Structure.ItemID = itemId;
         rsp.Structure.Ret = 0;
 
-        Logger.Debug($"BindFlag:{req.BindFlag} ManufactureId:{req.ManufactureId} itemId:{itemId} ItemPlaceMent:{req.ItemPlaceMent}");
-
         client.SendCsProtoStructurePacket(rsp);
+
+        Logger.Debug($"BindFlag:{req.BindFlag} ManufactureId:{req.ManufactureId} itemId:{itemId} ItemPlaceMent:{req.ItemPlaceMent}");
     }
 }

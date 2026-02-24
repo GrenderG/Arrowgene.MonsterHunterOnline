@@ -3,7 +3,6 @@ using Arrowgene.MonsterHunterOnline.Service.CsProto.Constant;
 using Arrowgene.MonsterHunterOnline.Service.CsProto.Core;
 using Arrowgene.MonsterHunterOnline.Service.CsProto.Structures;
 using Microsoft.VisualBasic.FileIO;
-using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -21,8 +20,6 @@ public class TownInitCommand : ChatCommand
 
     public override void Execute(string[] command, Client client, ChatMessage message, List<ChatMessage> responses)
     {
-
-
         CsCsProtoStructurePacket<TownInstanceVerifyRsp> townServerInitNtf = CsProtoResponse.TownServerInitNtf;
         TownInstanceVerifyRsp verifyRsp = townServerInitNtf.Structure;
         verifyRsp.ErrNo = 0;

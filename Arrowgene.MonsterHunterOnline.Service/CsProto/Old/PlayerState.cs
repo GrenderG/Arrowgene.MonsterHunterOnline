@@ -24,7 +24,6 @@ public class PlayerState
 
     public CSQuatT InitSpawnPose = new CSQuatT()
     {
-
         q = new CSQuat()
         {
             v = new CSVec3() { x = 10, y = 10, z = 10 },

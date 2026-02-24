@@ -41,6 +41,5 @@ namespace Arrowgene.MonsterHunterOnline.Service.CsProto.Structures
             NetID = ReadInt32(buffer);
             TypeID = ReadInt32(buffer);
         }
-
     }
 }

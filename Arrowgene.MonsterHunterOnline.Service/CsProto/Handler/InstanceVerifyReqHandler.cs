@@ -117,21 +117,10 @@ public class InstanceVerifyReqHandler : CsProtoStructureHandler<InstanceVerifyRe
             }
         }
 
-
         _characterManager.PopulatePlayerInitInfo(client, client.Character, playerInitInfo.Structure);
         client.SendCsProtoStructurePacket(playerInitInfo);
 
         CsCsProtoStructurePacket<InstanceVerifyRsp> instanceVerifyRsp = CsProtoResponse.InstanceVerifyRsp;
         client.SendCsProtoStructurePacket(instanceVerifyRsp);
-
-        // TODO 
-        // CsCsProtoStructurePacket<PlayerTeleport> PlayerTeleport = CsProtoResponse.PlayerTeleport;
-        // PlayerTeleport.Structure.SyncTime = 1;
-        // PlayerTeleport.Structure.NetObjId = client.Character.Id;
-        // PlayerTeleport.Structure.Region = client.State.MainInstanceLevelId;
-        // PlayerTeleport.Structure.TargetPos = playerInitInfo.Structure.Pose;
-        // PlayerTeleport.Structure.ParentGuid = 1;
-        // PlayerTeleport.Structure.InitState = 1;
-        // client.SendCsProtoStructurePacket(PlayerTeleport);
     }
 }

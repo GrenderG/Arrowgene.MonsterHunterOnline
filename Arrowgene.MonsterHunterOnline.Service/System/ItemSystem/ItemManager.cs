@@ -63,7 +63,6 @@ public class ItemManager
         string staticFolder = Path.Combine(Util.ExecutingDirectory(), "Files\\Static");
         string csvPath = Path.Combine(staticFolder, "ManufactureDataInfo.csv");
 
-
         using (TextFieldParser parser = new TextFieldParser(csvPath))
         {
             parser.TextFieldType = FieldType.Delimited;

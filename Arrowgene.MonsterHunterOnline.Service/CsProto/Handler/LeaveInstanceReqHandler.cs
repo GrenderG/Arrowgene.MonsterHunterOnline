@@ -25,7 +25,6 @@ public class LeaveInstanceReqHandler : CsProtoStructureHandler<LeaveInstanceReq>
         CsCsProtoStructurePacket<LeaveInstanceRsp> rsp = CsProtoResponse.LeaveInstanceRsp;
         client.SendCsProtoStructurePacket(rsp);
         
-        
         CsCsProtoStructurePacket<MainInstanceClose> mainInstanceClose = CsProtoResponse.MainInstanceClose;
         mainInstanceClose.Structure.LevelId = 1;
         mainInstanceClose.Structure.RoomId = 1;
@@ -34,9 +33,7 @@ public class LeaveInstanceReqHandler : CsProtoStructureHandler<LeaveInstanceReq>
         mainInstanceClose.Structure.RoleName = client.Character.Name;
         client.SendCsProtoStructurePacket(mainInstanceClose);
         
-        
         client.State.SelectRoleTrigger = false;
-        
         
         CsCsProtoStructurePacket<TownInstanceVerifyRsp> townServerInitNtf = CsProtoResponse.TownServerInitNtf;
         TownInstanceVerifyRsp verifyRsp = townServerInitNtf.Structure;

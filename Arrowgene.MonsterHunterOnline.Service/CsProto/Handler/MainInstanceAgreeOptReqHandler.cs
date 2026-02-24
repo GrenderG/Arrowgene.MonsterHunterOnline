@@ -41,7 +41,6 @@ public class MainInstanceAgreeOptReqHandler : CsProtoStructureHandler<MainInstan
         // TODO dirty hack
         Thread.Sleep(5000);
 
-
         //client.SendCsPacket(NewCsPacket.MainInstanceClose(new CSMainInstanceClose()
         //    {
         //        LevelID = client.State.levelId,
@@ -51,7 +50,6 @@ public class MainInstanceAgreeOptReqHandler : CsProtoStructureHandler<MainInstan
         //        RoleName = client.Character.Name,
         //    }
         //));
-
 
         CsCsProtoStructurePacket<InstanceInitInfo>
             instanceInitInfo = CsProtoResponse.InstanceInitInfo;
@@ -67,21 +65,17 @@ public class MainInstanceAgreeOptReqHandler : CsProtoStructureHandler<MainInstan
         instanceInitInfo.Structure.WarningFlag = 0;
         instanceInitInfo.Structure.CreatePlayerMaxLv = 99;
 
-
-        // client.SendCsProtoStructurePacket(instanceInitInfo);
-
-
-        CsCsProtoStructurePacket<TownInstanceVerifyRsp> townServerInitNtf = CsProtoResponse.TownServerInitNtf;
-        townServerInitNtf.Structure.ErrNo = 0;
-        townServerInitNtf.Structure.LineId = 0;
-        townServerInitNtf.Structure.LevelEnterType = 0;
-        townServerInitNtf.Structure.InstanceInitInfo = instanceInitInfo.Structure;
+        //CsCsProtoStructurePacket<TownInstanceVerifyRsp> townServerInitNtf = CsProtoResponse.TownServerInitNtf;
+        //townServerInitNtf.Structure.ErrNo = 0;
+        //townServerInitNtf.Structure.LineId = 0;
+        //townServerInitNtf.Structure.LevelEnterType = 0;
+        //townServerInitNtf.Structure.InstanceInitInfo = instanceInitInfo.Structure;
         // client.SendCsProtoStructurePacket(townServerInitNtf);
+
         //client.State.prevLevelId = client.State.levelId;
         //client.State.levelId = client.State.MainInstanceLevelId;
         client.State.prevLevelId = client.State.MainInstanceLevelId;
         client.State.levelId = client.State.InitLevelId;
-
 
         CsCsProtoStructurePacket<EnterInstanceRsp> enterInstanceRsp = CsProtoResponse.EnterInstanceRsp;
         enterInstanceRsp.Structure.ErrNo = 0;
@@ -96,7 +90,5 @@ public class MainInstanceAgreeOptReqHandler : CsProtoStructureHandler<MainInstan
         enterInstanceRsp.Structure.CrossRegion = 0;
         enterInstanceRsp.Structure.MatchRoom = 0;
         client.SendCsProtoStructurePacket(enterInstanceRsp);
-
-    
     }
 }

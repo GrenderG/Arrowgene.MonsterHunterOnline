@@ -175,10 +175,10 @@ namespace Arrowgene.MonsterHunterOnline.Service.CsProto.Structures
                 additiveAccXYZ[i].WriteCs(buffer);
             }
             int additiveAccTimeCount = (int)additiveAccTime.Count;
-            buffer.WriteInt32(additiveAccTimeCount);
+            WriteInt32(buffer, additiveAccTimeCount);
             for (int i = 0; i < additiveAccTimeCount; i++)
             {
-                buffer.WriteFloat(additiveAccTime[i]);
+                WriteFloat(buffer, additiveAccTime[i]);
             }
         }
 
