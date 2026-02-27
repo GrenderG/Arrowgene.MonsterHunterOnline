@@ -5,6 +5,8 @@ using Arrowgene.MonsterHunterOnline.Service.Database;
 using Arrowgene.MonsterHunterOnline.Service.System.CharacterSystem;
 using Arrowgene.MonsterHunterOnline.Service.System.ClientAssetSystem;
 using Arrowgene.MonsterHunterOnline.Service.System.ItemSystem.Constant;
+using Microsoft.VisualBasic.FileIO;
+using System.IO;
 
 namespace Arrowgene.MonsterHunterOnline.Service.System.ItemSystem;
 
@@ -54,6 +56,36 @@ public class ItemManager
         client.SendCsProtoStructurePacket(itemMgrAddItemNtf);
 
         return true;
+    }
+
+    public int GetManufacturableItemId(int manufactureId)
+    {
+        string staticFolder = Path.Combine(Util.ExecutingDirectory(), "Files\\Static");
+        string csvPath = Path.Combine(staticFolder, "ManufactureDataInfo.csv");
+
+        using (TextFieldParser parser = new TextFieldParser(csvPath))
+        {
+            parser.TextFieldType = FieldType.Delimited;
+            parser.SetDelimiters(",");
+
+            // Skip the header line
+            parser.ReadLine();
+            while (!parser.EndOfData)
+            {
+                string[] fields = parser.ReadFields();
+                string manId = fields[0];
+                //bool isMatch = !string.IsNullOrEmpty(levelId) &&
+                //    !string.IsNullOrEmpty(level_comp) &&
+                //    (level_comp.Contains(levelId) || levelId.Contains(level_comp));
+                bool isMatch = manufactureId == int.Parse(manId);
+                if (isMatch)
+                {
+                    string itemId = fields[18];
+                    return int.Parse(itemId);
+                }
+            }
+        }
+        return -1;
     }
 
     /// <summary>

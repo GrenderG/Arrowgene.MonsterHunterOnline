@@ -20,13 +20,24 @@ public class PlayerState
     public int prevLevelId { get; set; }
     public CSVec3 Position { get; set; }
     public int MainInstanceLevelId { get; set; }
+    public bool SelectRoleTrigger { get; set; }
+
+    public CSQuatT InitSpawnPose = new CSQuatT()
+    {
+        q = new CSQuat()
+        {
+            v = new CSVec3() { x = 10, y = 10, z = 10 },
+            w = 10
+        },
+        t = new CSVec3() { x = 404.91379f, y = 396.74976f, z = 85.0f }
+    };
 
     public CSVec3 InitSpawnPos = new CSVec3()
-//  {
-//      x = 1588.4813f,
-//      y = 1593.0623f,
-//      z = 142.93517f
-//  };
+    //  {
+    //      x = 1588.4813f,
+    //      y = 1593.0623f,
+    //      z = 142.93517f
+    //  };
     {
         x = 404.91379f,
         y = 396.74976f,
@@ -39,5 +50,7 @@ public class PlayerState
     public PlayerState(Client client)
     {
         _client = client;
+        if (this.Position == null)
+            Position = InitSpawnPos;
     }
 }

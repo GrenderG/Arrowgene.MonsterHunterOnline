@@ -17,13 +17,15 @@ namespace Arrowgene.MonsterHunterOnline.Service.System.ChatSystem.Command
         public ChatCommandHandler(Server server)
         {
             _commands = new Dictionary<string, ChatCommand>();
+            AddCommand(new HelpCommand(_commands));
             AddCommand(new VersionCommand());
-            AddCommand(new TownInitCommand());
             AddCommand(new SpawnCommand());
             AddCommand(new PositionCommand());
             AddCommand(new TeleportCommand());
             AddCommand(new ItemCommand(server.ItemManager));
             AddCommand(new TestCommand());
+            AddCommand(new ResetPosExCommand());
+            AddCommand(new TownInitCommand());
         }
 
         public void AddCommand(ChatCommand command)
