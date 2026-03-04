@@ -2,9 +2,15 @@
 using Arrowgene.MonsterHunterOnline.Service.CsProto.Constant;
 using Arrowgene.MonsterHunterOnline.Service.CsProto.Core;
 using Arrowgene.MonsterHunterOnline.Service.CsProto.Enums;
+using Arrowgene.MonsterHunterOnline.Service.CsProto.Old.ExtraStructures;
 using Arrowgene.MonsterHunterOnline.Service.CsProto.Structures;
 using Arrowgene.MonsterHunterOnline.Service.System;
 using Arrowgene.MonsterHunterOnline.Service.System.CharacterSystem;
+using Microsoft.VisualBasic.FileIO;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using System.Threading;
 
 namespace Arrowgene.MonsterHunterOnline.Service.CsProto.Handler;
 
@@ -24,6 +30,71 @@ public class EnterLevelNtfHandler : CsProtoStructureHandler<EnterLevelNtf>
 
     public override void Handle(Client client, EnterLevelNtf req)
     {
-       // _characterManager.SyncAllAttr(client);
+        // _characterManager.SyncAllAttr(client);
+
+        //TODO: packet is a list so the game should handle a list of spawns, but it appears that it doesnt want ?
+        //      maybe because there is other entities ?
+        //CsCsProtoStructurePacket<MonsterAppearNtfList> monsterAppearNtfList = CsProtoResponse.MonsterAppearNtfList;
+
+        string staticFolder = Path.Combine(Util.ExecutingDirectory(), "Files/Static");
+        string npcFilePath = Path.Combine(staticFolder, "LevelDataNPCs.csv");
+        using (TextFieldParser parser = new TextFieldParser(npcFilePath))
+        {
+            parser.TextFieldType = FieldType.Delimited;
+            parser.SetDelimiters(",");
+
+            // Skip the header line
+            parser.ReadLine();
+            while (!parser.EndOfData)
+            {
+                string[] fields = parser.ReadFields();
+                string levelId = fields[0];
+                // Remove the ";" character
+                if (levelId.Length > 0)
+                    levelId = levelId.Remove(levelId.Length - 1);
+
+                // 150 hubs, 160 farm, 180 city
+                bool isMatch = (client.State.levelId.ToString() == levelId) 
+                                && (levelId.StartsWith("150") || levelId.StartsWith("160") || levelId.StartsWith("180")) 
+                                && levelId.EndsWith("01");
+                if (isMatch)
+                {
+                    //TODO: HACK because it doesnt seems to work with a full list of the zone
+                    CsCsProtoStructurePacket<MonsterAppearNtfList> monsterAppearNtfList = CsProtoResponse.MonsterAppearNtfList;
+
+                    string npcID = fields[9];
+
+                    string[] posValues = fields[4].Split(",");
+                    string[] rotValues = fields[5].Split(",");
+
+                    float posX = float.Parse(posValues[0], CultureInfo.InvariantCulture);
+                    float posY = float.Parse(posValues[1], CultureInfo.InvariantCulture);
+                    float posZ = float.Parse(posValues[2], CultureInfo.InvariantCulture);
+
+                    //tricky thing, W is first here, not the same as ChangeTown.csv
+                    float rotateW = float.Parse(rotValues[0], CultureInfo.InvariantCulture);
+                    float rotateX = float.Parse(rotValues[1], CultureInfo.InvariantCulture);
+                    float rotateY = float.Parse(rotValues[2], CultureInfo.InvariantCulture);
+                    float rotateZ = float.Parse(rotValues[3], CultureInfo.InvariantCulture);
+
+                    CSVec3 npcPosVec = new CSVec3(posX, posY, posZ);
+                    CSQuat npcRotQuat = new CSQuat(rotateW, rotateX, rotateY, rotateZ);
+
+                    monsterAppearNtfList.Structure.Appear.Add(new MonsterAppearNtf()
+                    {
+                        NetId = 0,
+                        SpawnType = 1,
+                        MonsterInfoId = int.Parse(npcID),
+                        Pose = new CSQuatT(npcPosVec, npcRotQuat),
+                    });
+
+                    //TODO: HACK because it doesnt seems to take a full list of the zone
+                    client.SendCsProtoStructurePacket(monsterAppearNtfList);                    
+                    Thread.Sleep(25);
+                }
+            }
+            //TODO: should work like a full list
+            //client.SendCsProtoStructurePacket(monsterAppearNtfList);
+        }
     }
 }
