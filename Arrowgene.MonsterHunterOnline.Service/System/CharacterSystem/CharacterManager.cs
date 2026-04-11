@@ -8,6 +8,7 @@ using Arrowgene.MonsterHunterOnline.Service.System.ItemSystem;
 using Arrowgene.MonsterHunterOnline.Service.System.ItemSystem.Constant;
 using Arrowgene.MonsterHunterOnline.Service.System.UnlockSystem;
 using Arrowgene.MonsterHunterOnline.Service.Tdr.TlvStructures;
+using Rathalos.Core.Protocol.Messages.Custom.Csproto.Classes.Tlvs;
 
 namespace Arrowgene.MonsterHunterOnline.Service.System.CharacterSystem;
 
@@ -112,9 +113,9 @@ public class CharacterManager
         character.StarLevel = "";
         character.HrLevel = 0;
         character.SoulStoneLv = 0;
-        character.HideHelm = false;
-        character.HideFashion = false;
-        character.HideSuite = false;
+        character.HideHelm = 0;
+        character.HideFashion = 0;
+        character.HideSuite = 0;
 
         if (!_database.CreateCharacter(character))
         {
@@ -243,14 +244,47 @@ public class CharacterManager
         structure.CatCuisineFormulaCount = 0;
         structure.IsSpectating = 0;
         structure.DragonShopBox = 0;
-        structure.CanGetRewarded = 0;
+        structure.CanGetRewarded = 1;
         for (int i = 0; i < CsProtoConstant.CS_MAX_FACIALINFO_COUNT; i++)
         {
             structure.FacialInfo[i] = character.FacialInfo[i];
         }
 
         // attributes
-        structure.Attr.SetCharLevel((int)character.Level);
+        // Using Fallen TLV to show it can be handled the same.
+        TlvCharAttributes charAttr = new TlvCharAttributes();
+        charAttr.SetCharLevel(100);
+        charAttr.CharSex = character.Gender;
+        charAttr.SetCharSpeed(100);
+        charAttr.CharSta = 100;
+        charAttr.SetCharMaxSta(100);
+        charAttr.StarLevel = character.HrLevel;
+        charAttr.CharHP = 100;
+        charAttr.SetCharMaxHP(100);
+        charAttr.MaleFace = character.FaceId;
+        charAttr.MaleHair = character.HairId;
+        charAttr.UnderClothes = character.UnderclothesId;
+        charAttr.SkinColor = character.SkinColor;
+        charAttr.HairColor = character.HairColor;
+        charAttr.InnerColor = character.InnerColor;
+        charAttr.FaceTattooIndex = character.FaceTattooIndex;
+        charAttr.EyeBall = character.EyeBall;
+        charAttr.FaceTattooColor = character.FaceTattooColor;
+        charAttr.EyeColor = character.EyeColor;
+        charAttr.SetFacialInfo(character.FacialInfo);
+        charAttr.CharHRLevel = character.HrLevel;
+        charAttr.CharHRPoint = 0; //TODO: check if it's hr exp
+        charAttr.HideFashion = character.HideFashion;
+        charAttr.HideSuite = character.HideSuite;
+        charAttr.HideHelm = character.HideHelm;
+        charAttr.GuildId = 1;
+        //charAttr.CharGuild = 1;
+
+        structure.Attr.AddRange((List<byte>)charAttr);
+
+
+        // Using directly TlvAttr structure
+        /*structure.Attr.SetCharLevel((int)character.Level);
         structure.Attr.CharSex = character.Gender;
         structure.Attr.SetCharSpeed(100);
         structure.Attr.CharSta = 100;
@@ -274,111 +308,159 @@ public class CharacterManager
         structure.Attr.HideFashion = character.HideFashion;
         structure.Attr.HideSuite = character.HideSuite;
         structure.Attr.HideHelm = character.HideHelm;
+        structure.Attr.GuildId = 1;
+        structure.Attr.CharGuild = 1;
 
         SystemUnlockFlags systemUnlockData = SystemUnlock.GetForLevel(character.Level);
         structure.Attr.SystemUnlockData = systemUnlockData;
-        structure.Attr.SystemUnlockExtData1 = systemUnlockData.ToExtFlags();
+        structure.Attr.SystemUnlockExtData1 = systemUnlockData.ToExtFlags();*/
+
+
+        // Test for skills, headed to nothing.
+        /*TlvManuSkill tlvManu = new TlvManuSkill()
+        {
+            SkillWeapons = new List<TlvSkillWeaponItem>()
+            {
+                new TlvSkillWeaponItem(),
+                new TlvSkillWeaponItem(),
+                new TlvSkillWeaponItem(),
+                new TlvSkillWeaponItem(),
+
+                new TlvSkillWeaponItem(),
+                new TlvSkillWeaponItem(),
+                new TlvSkillWeaponItem(),
+                new TlvSkillWeaponItem(),
+
+                new TlvSkillWeaponItem(),
+                new TlvSkillWeaponItem(),
+                new TlvSkillWeaponItem(),
+                new TlvSkillWeaponItem(),
+
+                new TlvSkillWeaponItem()
+            },
+
+            ManuSkills = new List<TlvSkillItem>()
+            {
+                new TlvSkillItem() {
+                    Id = 154222,
+                    Value = 154222,
+                    Level = 1
+                }
+            }
+        };
+
+        structure.Skill.AddRange((List<byte>)tlvManu);*/
 
         // task
-     // structure.Task.Tasks.Add(new TlvTaskEntry()
-     // {
-     //     Id = 3007,
-     //     AcceptTime = 0,
-     //     State = 0,
-     //     Timeout = 0
-     // });
-     // structure.Task.Tasks.Add(new TlvTaskEntry()
-     // {
-     //     Id = 3,
-     //     AcceptTime = 0,
-     //     State = 0,
-     //     Timeout = 0
-     // });
-     // structure.Task.Tasks.Add(new TlvTaskEntry()
-     // {
-     //     Id = 4,
-     //     AcceptTime = 0,
-     //     State = 0,
-     //     Timeout = 0
-     // });
-     // structure.Task.Tasks.Add(new TlvTaskEntry()
-     // {
-     //     Id = 5,
-     //     AcceptTime = 0,
-     //     State = 0,
-     //     Timeout = 0
-     // });
-     // structure.Task.Tasks.Add(new TlvTaskEntry()
-     // {
-     //     Id = 10,
-     //     AcceptTime = 0,
-     //     State = 0,
-     //     Timeout = 0
-     // });
-     // structure.Task.Tasks.Add(new TlvTaskEntry()
-     // {
-     //     Id = 3002,
-     //     AcceptTime = 0,
-     //     State = 0,
-     //     Timeout = 0
-     // });
-     // structure.Task.Tasks.Add(new TlvTaskEntry()
-     // {
-     //     Id = 3004,
-     //     AcceptTime = 0,
-     //     State = 0,
-     //     Timeout = 0
-     // });
-     // structure.Task.Tasks.Add(new TlvTaskEntry()
-     // {
-     //     Id = 6,
-     //     AcceptTime = 0,
-     //     State = 0,
-     //     Timeout = 0
-     // });
-     // structure.Task.Tasks.Add(new TlvTaskEntry()
-     // {
-     //     Id = 7,
-     //     AcceptTime = 0,
-     //     State = 0,
-     //     Timeout = 0
-     // });
-     // structure.Task.Tasks.Add(new TlvTaskEntry()
-     // {
-     //     Id = 8,
-     //     AcceptTime = 0,
-     //     State = 0,
-     //     Timeout = 0
-     // });
-     // structure.Task.Tasks.Add(new TlvTaskEntry()
-     // {
-     //     Id = 9,
-     //     AcceptTime = 0,
-     //     State = 0,
-     //     Timeout = 0
-     // });
-     // structure.Task.Tasks.Add(new TlvTaskEntry()
-     // {
-     //     Id = 3003,
-     //     AcceptTime = 0,
-     //     State = 0,
-     //     Timeout = 0
-     // });
-     // structure.Task.Tasks.Add(new TlvTaskEntry()
-     // {
-     //     Id = 11,
-     //     AcceptTime = 0,
-     //     State = 0,
-     //     Timeout = 0
-     // });
-        structure.Task.Tasks.Add(new TlvTaskEntry()
+        // structure.Task.Tasks.Add(new TlvTaskEntry()
+        // {
+        //     Id = 3007,
+        //     AcceptTime = 0,
+        //     State = 0,
+        //     Timeout = 0
+        // });
+        // structure.Task.Tasks.Add(new TlvTaskEntry()
+        // {
+        //     Id = 3,
+        //     AcceptTime = 0,
+        //     State = 0,
+        //     Timeout = 0
+        // });
+        // structure.Task.Tasks.Add(new TlvTaskEntry()
+        // {
+        //     Id = 4,
+        //     AcceptTime = 0,
+        //     State = 0,
+        //     Timeout = 0
+        // });
+        // structure.Task.Tasks.Add(new TlvTaskEntry()
+        // {
+        //     Id = 5,
+        //     AcceptTime = 0,
+        //     State = 0,
+        //     Timeout = 0
+        // });
+        // structure.Task.Tasks.Add(new TlvTaskEntry()
+        // {
+        //     Id = 10,
+        //     AcceptTime = 0,
+        //     State = 0,
+        //     Timeout = 0
+        // });
+        // structure.Task.Tasks.Add(new TlvTaskEntry()
+        // {
+        //     Id = 3002,
+        //     AcceptTime = 0,
+        //     State = 0,
+        //     Timeout = 0
+        // });
+        // structure.Task.Tasks.Add(new TlvTaskEntry()
+        // {
+        //     Id = 3004,
+        //     AcceptTime = 0,
+        //     State = 0,
+        //     Timeout = 0
+        // });
+        // structure.Task.Tasks.Add(new TlvTaskEntry()
+        // {
+        //     Id = 6,
+        //     AcceptTime = 0,
+        //     State = 0,
+        //     Timeout = 0
+        // });
+        // structure.Task.Tasks.Add(new TlvTaskEntry()
+        // {
+        //     Id = 7,
+        //     AcceptTime = 0,
+        //     State = 0,
+        //     Timeout = 0
+        // });
+        // structure.Task.Tasks.Add(new TlvTaskEntry()
+        // {
+        //     Id = 8,
+        //     AcceptTime = 0,
+        //     State = 0,
+        //     Timeout = 0
+        // });
+        // structure.Task.Tasks.Add(new TlvTaskEntry()
+        // {
+        //     Id = 9,
+        //     AcceptTime = 0,
+        //     State = 0,
+        //     Timeout = 0
+        // });
+        // structure.Task.Tasks.Add(new TlvTaskEntry()
+        // {
+        //     Id = 3003,
+        //     AcceptTime = 0,
+        //     State = 0,
+        //     Timeout = 0
+        // });
+        // structure.Task.Tasks.Add(new TlvTaskEntry()
+        // {
+        //     Id = 11,
+        //     AcceptTime = 0,
+        //     State = 0,
+        //     Timeout = 0
+        // });
+        /*structure.Task.Tasks.Add(new TlvTaskEntry()
         {
             Id = 12,
             AcceptTime = 0,
             State = 0,
             Timeout = 0
-        });
-     
+        });*/
+
+
+        // Test on guild, headed to nothing.
+        /*TlvGuildContributionData guildData = new TlvGuildContributionData();
+
+        guildData.Guild = 1;
+        guildData.Contribution = 100;
+
+
+        structure.Guild.AddRange((List<byte>)guildData);*/
+
 
         // equip
         // TODO null check
@@ -564,21 +646,21 @@ public class CharacterManager
         sync.EntityId = character.Id;
         sync.AttrId = 222;
         sync.BonusId = 0;
-        sync.Data.Bool = character.HideFashion;
+        sync.Data.Int = character.HideFashion;
         attrs.Add(sync);
 
         sync = new AttrSync();
         sync.EntityId = character.Id;
         sync.AttrId = 223;
         sync.BonusId = 0;
-        sync.Data.Bool = character.HideSuite;
+        sync.Data.Int = character.HideSuite;
         attrs.Add(sync);
 
         sync = new AttrSync();
         sync.EntityId = character.Id;
         sync.AttrId = 224;
         sync.BonusId = 0;
-        sync.Data.Bool = character.HideHelm;
+        sync.Data.Int = character.HideHelm;
         attrs.Add(sync);
 
         sync = new AttrSync();

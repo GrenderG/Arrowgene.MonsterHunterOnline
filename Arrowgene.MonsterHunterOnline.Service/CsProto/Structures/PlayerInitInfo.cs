@@ -3,6 +3,9 @@ using Arrowgene.Buffers;
 using Arrowgene.MonsterHunterOnline.Service.CsProto.Constant;
 using Arrowgene.MonsterHunterOnline.Service.CsProto.Core;
 using Arrowgene.MonsterHunterOnline.Service.Tdr.TlvStructures;
+using Rathalos.Core.Protocol.Messages.Custom.Csproto.Classes;
+using Rathalos.Core.Protocol.Messages.Custom.Csproto.Classes.Tlvs;
+using TlvItemList = Arrowgene.MonsterHunterOnline.Service.Tdr.TlvStructures.TlvItemList;
 
 namespace Arrowgene.MonsterHunterOnline.Service.CsProto.Structures
 {
@@ -47,7 +50,7 @@ namespace Arrowgene.MonsterHunterOnline.Service.CsProto.Structures
             PasserbyData = new List<PasserbyInfoPacket>();
             BlacklistData = new List<BlacklistInfoPacket>();
             FriendGroupData = new List<FriendGroupPacket>();
-            Attr = new TlvAttr();
+            Attr = new List<byte>();//new TlvAttr();
             Task = new TlvTaskData();
             Guild = new List<byte>();
             ActionPoint = new CSActionPointData();
@@ -271,7 +274,7 @@ namespace Arrowgene.MonsterHunterOnline.Service.CsProto.Structures
         /// <summary>
         /// attr数据
         /// </summary>
-        public TlvAttr Attr { get; }
+        public List<byte> Attr { get; } //TlvAttr 
 
         /// <summary>
         /// 任务数据
@@ -558,7 +561,8 @@ namespace Arrowgene.MonsterHunterOnline.Service.CsProto.Structures
             WriteList(buffer, PasserbyData, CsProtoConstant.CS_PASSERBY_MAX, WriteInt32, WriteCsStructure);
             WriteList(buffer, BlacklistData, CsProtoConstant.CS_BLACKLIST_MAX, WriteInt32, WriteCsStructure);
             WriteList(buffer, FriendGroupData, CsProtoConstant.CS_FRIENDGROUP_MAX, WriteInt32, WriteCsStructure);
-            WriteTlvStructure(buffer, Attr, (ushort)CsProtoConstant.CS_MAX_ATTR_DATA_LEN, WriteUInt16);
+            WriteList(buffer, Attr, (ushort)CsProtoConstant.CS_MAX_ATTR_DATA_LEN, WriteUInt16, WriteByte);
+            //WriteTlvStructure(buffer, Attr, (ushort)CsProtoConstant.CS_MAX_ATTR_DATA_LEN, WriteUInt16);
             WriteTlvStructure(buffer, Task, CsProtoConstant.CS_MAX_TASK_DATA_LEN, WriteInt32);
             WriteList(buffer, Guild, CsProtoConstant.CS_MAX_GUILD_DATA_LEN, WriteInt32, WriteByte);
             WriteCsStructure(buffer, ActionPoint);
@@ -662,7 +666,8 @@ namespace Arrowgene.MonsterHunterOnline.Service.CsProto.Structures
                 ReadCsStructure<BlacklistInfoPacket>);
             ReadList(buffer, FriendGroupData, CsProtoConstant.CS_FRIENDGROUP_MAX, ReadInt32,
                 ReadCsStructure<FriendGroupPacket>);
-            ReadTlvStructure(buffer, Attr, (ushort)CsProtoConstant.CS_MAX_ATTR_DATA_LEN, ReadUInt16);
+            ReadList(buffer, Attr, (ushort)CsProtoConstant.CS_MAX_ATTR_DATA_LEN, ReadUInt16, ReadByte);
+            //ReadTlvStructure(buffer, Attr, (ushort)CsProtoConstant.CS_MAX_ATTR_DATA_LEN, ReadUInt16);
             ReadTlvStructure(buffer, Task, CsProtoConstant.CS_MAX_TASK_DATA_LEN, ReadInt32);
             ReadList(buffer, Guild, CsProtoConstant.CS_MAX_GUILD_DATA_LEN, ReadInt32, ReadByte);
             ActionPoint = ReadCsStructure<CSActionPointData>(buffer);

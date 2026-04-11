@@ -28,9 +28,9 @@ public class RoleBaseInfo : Structure, ICsStructure
         FaceTattooIndex = 0;
         FaceTattooColor = 0;
         Equip = new List<AvatarItem>();
-        HideHelm = false;
-        HideFashion = false;
-        HideSuite = false;
+        HideHelm = 0;
+        HideFashion = 0;
+        HideSuite = 0;
         FacialInfo = new short[CsProtoConstant.CS_MAX_FACIALINFO_COUNT];
         StarLevel = "";
         HrLevel = 0;
@@ -135,17 +135,17 @@ public class RoleBaseInfo : Structure, ICsStructure
     /// <summary>
     /// 是否隐藏头盔
     /// </summary>
-    public bool HideHelm { get; set; }
+    public byte HideHelm { get; set; }
 
     /// <summary>
     /// 是否隐藏时装
     /// </summary>
-    public bool HideFashion { get; set; }
+    public byte HideFashion { get; set; }
 
     /// <summary>
     /// 是否隐藏套件
     /// </summary>
-    public bool HideSuite { get; set; }
+    public byte HideSuite { get; set; }
 
     /// <summary>
     /// 捏脸数据集合
@@ -195,9 +195,9 @@ public class RoleBaseInfo : Structure, ICsStructure
         WriteInt32(buffer, FaceTattooIndex);
         WriteInt32(buffer, FaceTattooColor);
         WriteList(buffer, Equip, equipSize, CsProtoConstant.ROLE_EQUIPED_MAX_NETMESSAGE, WriteCsStructure);
-        WriteBool(buffer, HideHelm);
-        WriteBool(buffer, HideFashion);
-        WriteBool(buffer, HideSuite);
+        WriteByte(buffer, HideHelm);
+        WriteByte(buffer, HideFashion);
+        WriteByte(buffer, HideSuite);
         WriteArray(buffer, FacialInfo, CsProtoConstant.CS_MAX_FACIALINFO_COUNT, WriteInt16);
         WriteString(buffer, StarLevel);
         WriteInt32(buffer, HrLevel);
@@ -232,9 +232,9 @@ public class RoleBaseInfo : Structure, ICsStructure
         FaceTattooColor = ReadInt32(buffer);
         Equip.Clear();
         ReadList(buffer, Equip, equipSize, CsProtoConstant.ROLE_EQUIPED_MAX_NETMESSAGE, ReadCsStructure<AvatarItem>);
-        HideHelm = ReadBool(buffer);
-        HideFashion = ReadBool(buffer);
-        HideSuite = ReadBool(buffer);
+        HideHelm = ReadByte(buffer);
+        HideFashion = ReadByte(buffer);
+        HideSuite = ReadByte(buffer);
         ReadArray(buffer, FacialInfo, CsProtoConstant.CS_MAX_FACIALINFO_COUNT, ReadInt16);
         StarLevel = ReadString(buffer);
         HrLevel = ReadInt32(buffer);
