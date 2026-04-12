@@ -244,7 +244,7 @@ public class CharacterManager
         structure.CatCuisineFormulaCount = 0;
         structure.IsSpectating = 0;
         structure.DragonShopBox = 0;
-        structure.CanGetRewarded = 1;
+        structure.CanGetRewarded = 0;
         for (int i = 0; i < CsProtoConstant.CS_MAX_FACIALINFO_COUNT; i++)
         {
             structure.FacialInfo[i] = character.FacialInfo[i];
