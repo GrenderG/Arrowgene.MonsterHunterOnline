@@ -1,8 +1,8 @@
 using System;
 using Arrowgene.Buffers;
-using Arrowgene.MonsterHunterOnline.Service.CsProto.Constant;
 using Arrowgene.MonsterHunterOnline.Service.CsProto.Core;
 using Arrowgene.MonsterHunterOnline.Service.System.UnlockSystem;
+using Arrowgene.MonsterHunterOnline.Service.CsProto.Constant;
 
 namespace Arrowgene.MonsterHunterOnline.Service.Tdr.TlvStructures
 {
@@ -516,7 +516,7 @@ namespace Arrowgene.MonsterHunterOnline.Service.Tdr.TlvStructures
             WriteTlvInt32Arr(buffer, 251, GhostStaminaDdctSpeed);
 
             for (int i = 0; i < 25; i++)
-                WriteTlvInt16(buffer, (252 + i), FacialInfo[i]);
+                WriteTlvInt16(buffer, 252 + i, FacialInfo[i]);
 
             WriteTlvInt32(buffer, 280, DistArrowUsed);
             WriteTlvInt32(buffer, 281, ExplodeArrowUsed);
@@ -567,7 +567,7 @@ namespace Arrowgene.MonsterHunterOnline.Service.Tdr.TlvStructures
             WriteTlvInt16(buffer, 328, XYVIP);
 
             for (int i = 0; i < 22; i++)
-                WriteTlvInt16(buffer, (329 + i), FacialInfo[25 + i]);
+                WriteTlvInt16(buffer, 329 + i, FacialInfo[25 + i]);
 
             WriteTlvInt32(buffer, 351, SanctionPunishEndTime);
             WriteTlvInt16(buffer, 352, TGPVIP);
