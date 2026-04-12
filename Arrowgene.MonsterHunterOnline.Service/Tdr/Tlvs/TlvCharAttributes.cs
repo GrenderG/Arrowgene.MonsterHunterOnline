@@ -298,11 +298,14 @@ namespace Rathalos.Core.Protocol.Messages.Custom.Csproto.Classes.Tlvs
         public float BowBlastSP { get; set; }
         #endregion
 
+        #region Properties - Singular booleans
+        public bool HideFashion { get; set; }
+        public bool HideSuite { get; set; }
+        public bool HideHelm { get; set; }
+        #endregion
+
         #region Properties - Singular Shorts
         public short Death { get; set; }
-        public short HideFashion { get; set; }
-        public short HideSuite { get; set; }
-        public short HideHelm { get; set; }
         public short TeamPasswordFlag { get; set; }
         public short VIP { get; set; }
         public short VIPVASFrozen { get; set; }
@@ -521,11 +524,14 @@ namespace Rathalos.Core.Protocol.Messages.Custom.Csproto.Classes.Tlvs
                         case 396: BowBlastSpeedSlow = reader.ReadFloat(); break;
                         case 397: BowBlastSP = reader.ReadFloat(); break;
 
+                        // Booleans
+                        case 227: HideFashion = reader.ReadShort() != 0; break;
+                        case 228: HideSuite = reader.ReadShort() != 0; break;
+                        case 229: HideHelm = reader.ReadShort() != 0; break;
+
                         // Shorts
                         case 20: Death = reader.ReadShort(); break;
-                        case 227: HideFashion = reader.ReadShort(); break;
-                        case 228: HideSuite = reader.ReadShort(); break;
-                        case 229: HideHelm = reader.ReadShort(); break;
+                        
                         case 245: TeamPasswordFlag = reader.ReadShort(); break;
                         case 284: VIP = reader.ReadShort(); break;
                         case 299: VIPVASFrozen = reader.ReadShort(); break;
@@ -814,9 +820,9 @@ namespace Rathalos.Core.Protocol.Messages.Custom.Csproto.Classes.Tlvs
             WriteTlvInt(writer, 224, BattleState);
             WriteTlvInt(writer, 225, HammerMode);
             WriteStrictIntArray(writer, 226, HammerModeTime, MaxArrayElements);
-            WriteTlvShort(writer, 227, HideFashion);
-            WriteTlvShort(writer, 228, HideSuite);
-            WriteTlvShort(writer, 229, HideHelm);
+            WriteTlvShort(writer, 227, (short)(HideFashion ? 1 : 0));
+            WriteTlvShort(writer, 228, (short)(HideSuite ? 1 : 0));
+            WriteTlvShort(writer, 229, (short)(HideHelm ? 1 : 0));
             WriteTlvInt(writer, 230, CharCatCredit);
             WriteTlvInt(writer, 231, CharReviveCredit);
             WriteTlvInt(writer, 232, JinLiValue);
