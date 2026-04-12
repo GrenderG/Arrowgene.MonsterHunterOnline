@@ -9,6 +9,7 @@ using Arrowgene.MonsterHunterOnline.Service.System.ItemSystem.Constant;
 using Arrowgene.MonsterHunterOnline.Service.System.UnlockSystem;
 using Arrowgene.MonsterHunterOnline.Service.Tdr.TlvStructures;
 using Rathalos.Core.Protocol.Messages.Custom.Csproto.Classes.Tlvs;
+using TlvCharAttributes = Arrowgene.MonsterHunterOnline.Service.Tdr.TlvStructures.TlvCharAttributes;
 
 namespace Arrowgene.MonsterHunterOnline.Service.System.CharacterSystem;
 
@@ -251,43 +252,7 @@ public class CharacterManager
         }
 
         // attributes
-        // Using Fallen TLV to show it can be handled the same.
-        TlvCharAttributes charAttr = new TlvCharAttributes();
-        charAttr.SetCharLevel(100);
-        charAttr.CharSex = character.Gender;
-        charAttr.SetCharSpeed(100);
-        charAttr.CharSta = 100;
-        charAttr.SetCharMaxSta(100);
-        charAttr.StarLevel = character.HrLevel;
-        charAttr.CharHP = 100;
-        charAttr.SetCharMaxHP(100);
-        charAttr.MaleFace = character.FaceId;
-        charAttr.MaleHair = character.HairId;
-        charAttr.UnderClothes = character.UnderclothesId;
-        charAttr.SkinColor = character.SkinColor;
-        charAttr.HairColor = character.HairColor;
-        charAttr.InnerColor = character.InnerColor;
-        charAttr.FaceTattooIndex = character.FaceTattooIndex;
-        charAttr.EyeBall = character.EyeBall;
-        charAttr.FaceTattooColor = character.FaceTattooColor;
-        charAttr.EyeColor = character.EyeColor;
-        charAttr.SetFacialInfo(character.FacialInfo);
-        charAttr.CharHRLevel = character.HrLevel;
-        charAttr.CharHRPoint = 0; //TODO: check if it's hr exp
-        charAttr.HideFashion = character.HideFashion;
-        charAttr.HideSuite = character.HideSuite;
-        charAttr.HideHelm = character.HideHelm;
-        charAttr.GuildId = 1;
-        //charAttr.CharGuild = 1;
-        SystemUnlockFlags systemUnlockData = SystemUnlock.GetForLevel(character.Level);
-        charAttr.SystemUnlockData = systemUnlockData;
-        charAttr.SystemUnlockExtData1 = systemUnlockData.ToExtFlags();
-
-        structure.Attr.AddRange((List<byte>)charAttr);
-
-
-        // Using directly TlvAttr structure
-        /*structure.Attr.SetCharLevel((int)character.Level);
+        structure.Attr.SetCharLevel((int)character.Level);
         structure.Attr.CharSex = character.Gender;
         structure.Attr.SetCharSpeed(100);
         structure.Attr.CharSta = 100;
@@ -301,7 +266,7 @@ public class CharacterManager
         structure.Attr.SkinColor = character.SkinColor;
         structure.Attr.HairColor = character.HairColor;
         structure.Attr.InnerColor = character.InnerColor;
-        structure.Attr.FaceTattooId = character.FaceTattooIndex;
+        structure.Attr.FaceTattooIndex = character.FaceTattooIndex;
         structure.Attr.EyeBall = character.EyeBall;
         structure.Attr.FaceTattooColor = character.FaceTattooColor;
         structure.Attr.EyeColor = character.EyeColor;
@@ -312,11 +277,11 @@ public class CharacterManager
         structure.Attr.HideSuite = character.HideSuite;
         structure.Attr.HideHelm = character.HideHelm;
         structure.Attr.GuildId = 1;
-        structure.Attr.CharGuild = 1;
+        //structure.Attr.CharGuild = 1;
 
         SystemUnlockFlags systemUnlockData = SystemUnlock.GetForLevel(character.Level);
         structure.Attr.SystemUnlockData = systemUnlockData;
-        structure.Attr.SystemUnlockExtData1 = systemUnlockData.ToExtFlags();*/
+        structure.Attr.SystemUnlockExtData1 = systemUnlockData.ToExtFlags();
 
 
         // Test for skills, headed to nothing.
@@ -446,13 +411,15 @@ public class CharacterManager
         //     State = 0,
         //     Timeout = 0
         // });
-        /*structure.Task.Tasks.Add(new TlvTaskEntry()
+
+        // This task allows to go in the first hunt
+        structure.Task.Tasks.Add(new TlvTaskEntry()
         {
             Id = 12,
             AcceptTime = 0,
             State = 0,
             Timeout = 0
-        });*/
+        });
 
 
         // Test on guild, headed to nothing.

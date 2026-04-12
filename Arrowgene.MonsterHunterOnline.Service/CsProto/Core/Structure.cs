@@ -458,6 +458,12 @@ namespace Arrowgene.MonsterHunterOnline.Service.CsProto.Core
             WriteUInt64(buffer, val);
         }
 
+        protected void WriteTlvFloat(IBuffer buffer, int id, float val)
+        {
+            WriteTlvTag(buffer, id, TlvType.ID_4_BYTE);
+            WriteFloat(buffer, val);
+        }
+
         protected void WriteTlvInt32Arr(IBuffer buffer, int id, int[] val)
         {
             WriteTlvTag(buffer, id, TlvType.ID_4_BYTE);
@@ -466,6 +472,17 @@ namespace Arrowgene.MonsterHunterOnline.Service.CsProto.Core
             for (int i = 0; i < count; i++)
             {
                 WriteInt32(buffer, val[i]);
+            }
+        }
+
+        protected void WriteTlvFloatArr(IBuffer buffer, int id, float[] val)
+        {
+            WriteTlvTag(buffer, id, TlvType.ID_4_BYTE);
+            int count = val.Length;
+            WriteInt32(buffer, count * 4);
+            for (int i = 0; i < count; i++)
+            {
+                WriteFloat(buffer, val[i]);
             }
         }
     }
