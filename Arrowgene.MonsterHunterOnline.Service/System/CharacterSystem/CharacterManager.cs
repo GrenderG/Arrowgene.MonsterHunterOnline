@@ -279,6 +279,9 @@ public class CharacterManager
         charAttr.HideHelm = character.HideHelm;
         charAttr.GuildId = 1;
         //charAttr.CharGuild = 1;
+        SystemUnlockFlags systemUnlockData = SystemUnlock.GetForLevel(character.Level);
+        charAttr.SystemUnlockData = systemUnlockData;
+        charAttr.SystemUnlockExtData1 = systemUnlockData.ToExtFlags();
 
         structure.Attr.AddRange((List<byte>)charAttr);
 

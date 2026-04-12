@@ -1,4 +1,5 @@
 using Arrowgene.MonsterHunterOnline.Service.CsProto.Constant;
+using Arrowgene.MonsterHunterOnline.Service.System.UnlockSystem;
 using Rathalos.Core.Utils.IO;
 using System.IO;
 
@@ -205,7 +206,7 @@ namespace Rathalos.Core.Protocol.Messages.Custom.Csproto.Classes.Tlvs
         public int TitleExp { get; set; }
         public int TitleLevel { get; set; }
         public int EquipTitleBuff { get; set; }
-        public int SystemUnlockData { get; set; }
+        public SystemUnlockFlags SystemUnlockData { get; set; }
         public int GuildContribution { get; set; }
         public int ExtDailyExp { get; set; }
         public int GuildId { get; set; }
@@ -226,7 +227,7 @@ namespace Rathalos.Core.Protocol.Messages.Custom.Csproto.Classes.Tlvs
         public int VIPGrowthEndTime { get; set; }
         public int VIPProfitEndTime { get; set; }
         public int BanChatEndTime { get; set; }
-        public int SystemUnlockExtData1 { get; set; }
+        public SystemUnlockExtFlags SystemUnlockExtData1 { get; set; }
         public int VIPBaseExpireLastNtfTime { get; set; }
         public int VIPVASFrozenTime { get; set; }
         public int ClanScore { get; set; }
@@ -433,7 +434,7 @@ namespace Rathalos.Core.Protocol.Messages.Custom.Csproto.Classes.Tlvs
                         case 238: TitleExp = reader.ReadInt(); break;
                         case 239: TitleLevel = reader.ReadInt(); break;
                         case 240: EquipTitleBuff = reader.ReadInt(); break;
-                        case 241: SystemUnlockData = reader.ReadInt(); break;
+                        case 241: SystemUnlockData = (SystemUnlockFlags)reader.ReadInt(); break;
                         case 242: GuildContribution = reader.ReadInt(); break;
                         case 243: ExtDailyExp = reader.ReadInt(); break;
                         case 244: GuildId = reader.ReadInt(); break;
@@ -454,7 +455,7 @@ namespace Rathalos.Core.Protocol.Messages.Custom.Csproto.Classes.Tlvs
                         case 296: VIPGrowthEndTime = reader.ReadInt(); break;
                         case 297: VIPProfitEndTime = reader.ReadInt(); break;
                         case 298: BanChatEndTime = reader.ReadInt(); break;
-                        case 303: SystemUnlockExtData1 = reader.ReadInt(); break;
+                        case 303: SystemUnlockExtData1 = (SystemUnlockExtFlags)reader.ReadInt(); break;
                         case 306: VIPBaseExpireLastNtfTime = reader.ReadInt(); break;
                         case 312: VIPVASFrozenTime = reader.ReadInt(); break;
                         case 313: ClanScore = reader.ReadInt(); break;
@@ -834,7 +835,7 @@ namespace Rathalos.Core.Protocol.Messages.Custom.Csproto.Classes.Tlvs
             WriteTlvInt(writer, 238, TitleExp);
             WriteTlvInt(writer, 239, TitleLevel);
             WriteTlvInt(writer, 240, EquipTitleBuff);
-            WriteTlvInt(writer, 241, SystemUnlockData);
+            WriteTlvInt(writer, 241, (int)SystemUnlockData);
             WriteTlvInt(writer, 242, GuildContribution);
             WriteTlvInt(writer, 243, ExtDailyExp);
             WriteTlvInt(writer, 244, GuildId);
@@ -870,7 +871,7 @@ namespace Rathalos.Core.Protocol.Messages.Custom.Csproto.Classes.Tlvs
             WriteTlvShort(writer, 300, VIPBaseCanUse);
             WriteTlvShort(writer, 301, VIPGrowthCanUse);
             WriteTlvShort(writer, 302, VIPProfitCanUse);
-            WriteTlvInt(writer, 303, SystemUnlockExtData1);
+            WriteTlvInt(writer, 303, (int)SystemUnlockExtData1);
             WriteStrictIntArray(writer, 304, BowChargeLevelMax, MaxArrayElements);
             WriteTlvShort(writer, 305, IsVIPBaseExpireNtf);
             WriteTlvInt(writer, 306, VIPBaseExpireLastNtfTime);
