@@ -8,8 +8,6 @@ using Arrowgene.MonsterHunterOnline.Service.System.ItemSystem;
 using Arrowgene.MonsterHunterOnline.Service.System.ItemSystem.Constant;
 using Arrowgene.MonsterHunterOnline.Service.System.UnlockSystem;
 using Arrowgene.MonsterHunterOnline.Service.Tdr.TlvStructures;
-using Rathalos.Core.Protocol.Messages.Custom.Csproto.Classes.Tlvs;
-using TlvCharAttributes = Arrowgene.MonsterHunterOnline.Service.Tdr.TlvStructures.TlvCharAttributes;
 
 namespace Arrowgene.MonsterHunterOnline.Service.System.CharacterSystem;
 

@@ -3,10 +3,6 @@ using Arrowgene.Buffers;
 using Arrowgene.MonsterHunterOnline.Service.CsProto.Constant;
 using Arrowgene.MonsterHunterOnline.Service.CsProto.Core;
 using Arrowgene.MonsterHunterOnline.Service.Tdr.TlvStructures;
-using Rathalos.Core.Protocol.Messages.Custom.Csproto.Classes;
-using Rathalos.Core.Protocol.Messages.Custom.Csproto.Classes.Tlvs;
-using TlvItemList = Arrowgene.MonsterHunterOnline.Service.Tdr.TlvStructures.TlvItemList;
-using TlvCharAttributes = Arrowgene.MonsterHunterOnline.Service.Tdr.TlvStructures.TlvCharAttributes;
 
 namespace Arrowgene.MonsterHunterOnline.Service.CsProto.Structures
 {
