@@ -570,24 +570,6 @@ namespace Arrowgene.MonsterHunterOnline.Service.CsProto.Core
             WriteVarUInt(buffer, zigzag);
         }
 
-        protected void WriteTlvVarInt32Arr(IBuffer buffer, int id, int[] val)
-        {
-            if (val == null || val.Length == 0) return;
-            WriteTlvTag(buffer, id, TlvType.ID_LENGTH_DELIMITED);
-            int lenPos = buffer.Position;
-            WriteInt32(buffer, 0);
-            int startPos = buffer.Position;
-            for (int i = 0; i < val.Length; i++)
-            {
-                uint zigzag = (uint)((val[i] << 1) ^ (val[i] >> 31));
-                WriteVarUInt(buffer, zigzag);
-            }
-            int endPos = buffer.Position;
-            buffer.Position = lenPos;
-            WriteInt32(buffer, endPos - startPos);
-            buffer.Position = endPos;
-        }
-
         protected void WriteTlvVarInt16Arr(IBuffer buffer, int id, short[] val)
         {
             if (val == null || val.Length == 0) return;
