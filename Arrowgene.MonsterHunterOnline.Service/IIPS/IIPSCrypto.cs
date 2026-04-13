@@ -54,7 +54,7 @@ public class IIPSCrypto
         uint edx = 0x863;
         uint eax = 0xEEEEEEEE;
         uint ebx;
-        int count = data.Length / 4;
+        int count = data.Length & ~3; // process all dwords (round down to multiple of 4)
         for (int i = 0; i < count; i += 4)
         {
             uint input =
@@ -95,6 +95,98 @@ public class IIPSCrypto
         return encryptor.TransformFinalBlock(data, 0, data.Length);
     }
 
+    // Standard MPQ StormBuffer (1280 entries), generated at init.
+    // RE: ifs2.dll uses runtime-initialized table at 0x1008b7b0 for FUN_10006740 (block decryption).
+    private static readonly uint[] StormBuffer = GenerateStormBuffer();
+
+    private static uint[] GenerateStormBuffer()
+    {
+        uint[] buffer = new uint[0x500];
+        uint seed = 0x00100001;
+        for (uint index1 = 0; index1 < 0x100; index1++)
+        {
+            uint index2 = index1;
+            for (int i = 0; i < 5; i++, index2 += 0x100)
+            {
+                seed = (seed * 125 + 3) % 0x2AAAAB;
+                uint temp1 = (seed & 0xFFFF) << 16;
+                seed = (seed * 125 + 3) % 0x2AAAAB;
+                uint temp2 = (seed & 0xFFFF);
+                buffer[index2] = temp1 | temp2;
+            }
+        }
+        return buffer;
+    }
+
+    /// <summary>
+    /// MPQ HashString — used to compute file encryption keys.
+    /// RE: Standard StormLib hash, used by ifs2.dll for file key computation.
+    /// </summary>
+    public static uint MpqHashString(string s, uint hashType)
+    {
+        uint seed1 = 0x7FED7FED;
+        uint seed2 = 0xEEEEEEEE;
+        foreach (char c in s)
+        {
+            uint ch = (uint)char.ToUpper(c);
+            seed1 = StormBuffer[hashType + ch] ^ (seed1 + seed2);
+            seed2 = ch + seed1 + seed2 + (seed2 << 5) + 3;
+        }
+        return seed1;
+    }
+
+    /// <summary>
+    /// Compute the MPQ file encryption key from a filename.
+    /// RE: ifs2.dll computes key at TNIFSFile+0x0C, used by FUN_10006740.
+    /// </summary>
+    public static uint ComputeFileKey(string fileName)
+    {
+        // Strip path to get plain filename
+        int lastSep = fileName.LastIndexOfAny(new[] { '\\', '/' });
+        string plainName = lastSep >= 0 ? fileName.Substring(lastSep + 1) : fileName;
+        return MpqHashString(plainName, 0x300);
+    }
+
+    /// <summary>
+    /// MPQ block decryption using standard StormBuffer.
+    /// </summary>
+    public static void MpqDecryptBlock(byte[] data, uint key)
+    {
+        DecryptBlockWithTable(data, key, StormBuffer, 0x400);
+    }
+
+    /// <summary>
+    /// NIFS block decryption using IfsSectionTable.
+    /// RE: FUN_10006740 uses the same cipher as IfsSectionCrypt but with per-file keys.
+    /// The runtime table at 0x1008b7b0 is likely initialized from the IFS-specific table.
+    /// </summary>
+    public static void IfsDecryptBlock(byte[] data, uint key)
+    {
+        DecryptBlockWithTable(data, key, IfsSectionTable, 0);
+    }
+
+    private static void DecryptBlockWithTable(byte[] data, uint key, uint[] table, int tableOffset)
+    {
+        uint key2 = 0xEEEEEEEE;
+        int count = data.Length & ~3;
+        for (int i = 0; i < count; i += 4)
+        {
+            key2 += table[tableOffset + (key & 0xFF)];
+            uint input =
+                (uint)data[i] |
+                (uint)data[i + 1] << 8 |
+                (uint)data[i + 2] << 16 |
+                (uint)data[i + 3] << 24;
+            uint result = input ^ (key + key2);
+            key = ((~key << 0x15) + 0x11111111) | (key >> 0x0B);
+            key2 = result + key2 + (key2 << 5) + 3;
+            data[i] = (byte)result;
+            data[i + 1] = (byte)(result >> 8);
+            data[i + 2] = (byte)(result >> 16);
+            data[i + 3] = (byte)(result >> 24);
+        }
+    }
+
     public static string Md5(byte[] inputData)
     {
         MemoryStream stream = new MemoryStream();
@@ -105,5 +197,57 @@ public class IIPSCrypto
             var hashResult = md5Instance.ComputeHash(stream);
             return BitConverter.ToString(hashResult).Replace("-", "").ToLowerInvariant();
         }
+    }
+
+    /// <summary>
+    /// Jenkins hashlittle2 — used by NIFS for filename lookup in HET table.
+    /// RE: ifs2.dll FUN_100065f0 calls FUN_10027fd0 with seeds pc=2, pb=1.
+    /// </summary>
+    public static void JenkinsHashlittle2(byte[] key, uint pcInit, uint pbInit, out uint pc, out uint pb)
+    {
+        uint a, b, c;
+        a = b = c = 0xDEADBEEF + (uint)key.Length + pcInit;
+        c += pbInit;
+
+        int offset = 0;
+        int length = key.Length;
+
+        while (length > 12)
+        {
+            a += BitConverter.ToUInt32(key, offset);
+            b += BitConverter.ToUInt32(key, offset + 4);
+            c += BitConverter.ToUInt32(key, offset + 8);
+
+            a -= c; a ^= (c << 4) | (c >> 28); c += b;
+            b -= a; b ^= (a << 6) | (a >> 26); a += c;
+            c -= b; c ^= (b << 8) | (b >> 24); b += a;
+            a -= c; a ^= (c << 16) | (c >> 16); c += b;
+            b -= a; b ^= (a << 19) | (a >> 13); a += c;
+            c -= b; c ^= (b << 4) | (b >> 28); b += a;
+
+            offset += 12;
+            length -= 12;
+        }
+
+        if (length > 0)
+        {
+            byte[] tail = new byte[12];
+            Array.Copy(key, offset, tail, 0, length);
+
+            a += BitConverter.ToUInt32(tail, 0);
+            b += BitConverter.ToUInt32(tail, 4);
+            c += BitConverter.ToUInt32(tail, 8);
+
+            c ^= b; c -= (b << 14) | (b >> 18);
+            a ^= c; a -= (c << 11) | (c >> 21);
+            b ^= a; b -= (a << 25) | (a >> 7);
+            c ^= b; c -= (b << 16) | (b >> 16);
+            a ^= c; a -= (c << 4) | (c >> 28);
+            b ^= a; b -= (a << 14) | (a >> 18);
+            c ^= b; c -= (b << 24) | (b >> 8);
+        }
+
+        pc = c;
+        pb = b;
     }
 }

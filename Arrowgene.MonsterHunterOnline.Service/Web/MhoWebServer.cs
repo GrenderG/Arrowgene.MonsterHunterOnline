@@ -15,6 +15,7 @@ public class MhoWebServer
     public MhoWebServer()
     {
         WebSetting webSetting = new WebSetting();
+        webSetting.WebEndpoints[0].Port = 8080; 
         _webService = new WebService(new KestrelWebServer(webSetting));
     }
 

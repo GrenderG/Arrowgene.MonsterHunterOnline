@@ -34,7 +34,7 @@ namespace Arrowgene.MonsterHunterOnline.Service
             Setting = new Setting(setting);
 
             Assets = new AssetRepository();
-            string clientAssets = Path.Combine(Util.ExecutingDirectory(), "Files\\Client");
+            string clientAssets = Path.Combine(Util.ExecutingDirectory(), "Files/Client");
             Assets.Initialize(clientAssets);
 
             Database = CreateDatabase();
