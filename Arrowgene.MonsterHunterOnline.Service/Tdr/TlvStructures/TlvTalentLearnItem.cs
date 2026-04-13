@@ -22,7 +22,7 @@ namespace Arrowgene.MonsterHunterOnline.Service.Tdr.TlvStructures
 
         public void WriteTlv(IBuffer buffer)
         {
-            WriteTlvVarInt32(buffer, 1, Id);
+            WriteTlvInt32(buffer, 1, Id);
             WriteTlvByte(buffer, 2, Level);
         }
     }

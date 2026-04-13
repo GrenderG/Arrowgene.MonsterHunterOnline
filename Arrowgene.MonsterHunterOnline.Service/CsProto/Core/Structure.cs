@@ -13,6 +13,8 @@ namespace Arrowgene.MonsterHunterOnline.Service.CsProto.Core
     {
         private static readonly ILogger Logger = LogProvider.Logger<Logger>(typeof(Structure));
 
+        public virtual TlvMagic Magic { get; private set; } = TlvMagic.NoVariant;
+
         private static readonly JsonSerializerOptions JsonSerializerOptions = new JsonSerializerOptions
         {
             WriteIndented = true,
@@ -289,7 +291,10 @@ namespace Arrowgene.MonsterHunterOnline.Service.CsProto.Core
             // at the moment using a tmp buffer, however it should be able to work with existing
             // buffer by adjusting position and length to delete in case of error.
             StreamBuffer tmp = new StreamBuffer();
-            WriteByte(tmp, (byte)TlvMagic.NoVariant);
+            if (val is TlvDebug)
+                WriteByte(tmp, (byte)TlvMagic.Debug);
+            else
+                WriteByte(tmp, (byte)Magic);
             int startPos = tmp.Position;
             WriteInt32(tmp, 0);
             val.WriteTlv(tmp);
@@ -515,6 +520,20 @@ namespace Arrowgene.MonsterHunterOnline.Service.CsProto.Core
             WriteTlvTag(buffer, id, TlvType.ID_LENGTH_DELIMITED);
             WriteInt32(buffer, val.Length);
             buffer.WriteBytes(val);
+        }
+
+        /// <summary>
+        /// Writes a length-delimited block of Int32 values (wire_type=5 = ID_LENGTH_DELIMITED).
+        /// Matches the C++ TDR writer pattern: WriteVarUInt(tag|5) + WriteInt(count*4) + WriteInt32[].
+        /// Use instead of WriteTlvInt32Arr for raw int arrays embedded in TLV structures.
+        /// </summary>
+        protected void WriteTlvInt32Block(IBuffer buffer, int id, int[] val)
+        {
+            if (val == null || val.Length == 0) return;
+            WriteTlvTag(buffer, id, TlvType.ID_LENGTH_DELIMITED);
+            WriteInt32(buffer, val.Length * 4);
+            for (int i = 0; i < val.Length; i++)
+                WriteInt32(buffer, val[i]);
         }
 
         protected void WriteTlvString(IBuffer buffer, int id, string val)

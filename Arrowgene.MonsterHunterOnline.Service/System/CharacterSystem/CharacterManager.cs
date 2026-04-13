@@ -282,40 +282,92 @@ public class CharacterManager
         structure.Attr.SystemUnlockExtData1 = systemUnlockData.ToExtFlags();
 
 
-        // Test for skills, headed to nothing.
-        /*TlvManuSkill tlvManu = new TlvManuSkill()
+        // AI said : It's the base rages every class has
+
+        // Thinking of it, is it the 3 same skills all the class have ?
+        var rages = new TlvSkillWeaponItem()
         {
-            SkillWeapons = new List<TlvSkillWeaponItem>()
-            {
-                new TlvSkillWeaponItem(),
-                new TlvSkillWeaponItem(),
-                new TlvSkillWeaponItem(),
-                new TlvSkillWeaponItem(),
-
-                new TlvSkillWeaponItem(),
-                new TlvSkillWeaponItem(),
-                new TlvSkillWeaponItem(),
-                new TlvSkillWeaponItem(),
-
-                new TlvSkillWeaponItem(),
-                new TlvSkillWeaponItem(),
-                new TlvSkillWeaponItem(),
-                new TlvSkillWeaponItem(),
-
-                new TlvSkillWeaponItem()
-            },
-
-            ManuSkills = new List<TlvSkillItem>()
-            {
-                new TlvSkillItem() {
-                    Id = 154222,
-                    Value = 154222,
-                    Level = 1
-                }
-            }
+            Rages = new int[] { 10011, 10012, 10013 },
+            BushidoRages = new int[] { 10011, 10012, 10013 },
         };
 
-        structure.Skill.AddRange((List<byte>)tlvManu);*/
+        // AI said : Test skill data for LS (Long Sword = index 6 in SkillWeapons).
+        // Talent IDs 107xxx = LS talents (from weapontalent.dat).
+        // Rage IDs 10711, 10712 = LS rages (from rageinfo.dat).
+
+        // Tried a lot of things here, both SkillLearns/TalentLearns/TalentEquips looks to be taken
+        // by the game but no visual feedback can be seen
+        // Rages & BushidoRages looks like to break the integrity of the TlvSkillWeaponItem
+        var lsWeapon = new TlvSkillWeaponItem()
+        {
+            SkillLearns = new List<TlvSkillLearnIdItem>()
+            {
+                new TlvSkillLearnIdItem() { Id = 107101 },
+                new TlvSkillLearnIdItem() { Id = 107102 },
+                new TlvSkillLearnIdItem() { Id = 107103 },
+            },
+            TalentLearns = new List<TlvTalentLearnItem>()
+            {
+                new TlvTalentLearnItem() { Id = 107101, Level = 1 }, // 气刃捷径
+                new TlvTalentLearnItem() { Id = 107102, Level = 1 }, // 移行换位
+                new TlvTalentLearnItem() { Id = 107103, Level = 1 }, // 袈裟再起
+            },
+            TalentEquips = new List<TlvTalentEquipItem>()
+            {
+                new TlvTalentEquipItem() { Id = 10011, Idx = 1 },
+                new TlvTalentEquipItem() { Id = 10712, Idx = 2 },
+            },
+            RageIdx = 0,
+            //Rages = new int[] { 10711, 10712 },
+            //BushidoRages = new int[] { 10011, 10012, 10013 }, // ou [10711, 10712] si miroir
+        };
+
+        // All the 11 classes, id 11 is unused.
+        // AI said : 0 was rages that are universal to all classes
+        structure.Skill.SkillWeapons = new List<TlvSkillWeaponItem>()
+        {
+            rages, // 0: Rages (universal)
+            new TlvSkillWeaponItem(), // 1: GS  (大剑)
+            new TlvSkillWeaponItem(), // 2: Hammer (大锤)
+            new TlvSkillWeaponItem(), // 3: Lance (长枪)
+            new TlvSkillWeaponItem(), // 4: SnS (片手剑)
+            new TlvSkillWeaponItem(), // 5: Bowgun (弩)
+            new TlvSkillWeaponItem(), // 6: DS (双刀) 
+            lsWeapon,                 // 7: LS (太刀)
+            new TlvSkillWeaponItem(), // 8: HH (狩猎笛)
+            new TlvSkillWeaponItem(), // 9: GL (铳枪)
+            new TlvSkillWeaponItem(), // 10: Bow (弓)
+            new TlvSkillWeaponItem(), // 11: ? (absent in skillvideo.csv)
+            new TlvSkillWeaponItem(), // 12: SA (斩斧)
+        };
+
+        // AI said : ManuSkills: proficiency level per manufacturing branch.
+        // IDs from manufacturedata.dat_SkillName.csv: 1=food, 2=invent, 3=jewelry
+
+        // Using this had no changes.
+        /*structure.Skill.ManuSkills = new List<TlvSkillItem>()
+        {
+            new TlvSkillItem() { Id = 1, Value = 1, Level = 1 },
+            new TlvSkillItem() { Id = 2, Value = 2, Level = 1 },
+            new TlvSkillItem() { Id = 3, Value = 1, Level = 1 },
+        };*/
+
+
+        // AI said : FormulaBits: bitset of unlocked combination recipes (1 bit per recipe ID).
+        // Set all 80 bytes (640 bits max) to 0xFF to unlock everything.
+
+        // Even if there is 549 recipes in (manufacturedata.dat_ManufactureDataInfo.csv)
+        structure.Skill.FormulaBits = new byte[80];
+        for (int i = 0; i < 80; i++) structure.Skill.FormulaBits[i] = 0xFF;
+
+        // AI said : Ingredients: explicit list of known recipe/formula IDs.
+
+        // To unlock recipes, I only used the FormulaBits above. Using this had no changes.
+        /*structure.Skill.Ingredients = new List<TlvIngredientItem>()
+        {
+            new TlvIngredientItem() { Id = 21100 },
+            new TlvIngredientItem() { Id = 21067 }
+        };*/
 
         // task
         // structure.Task.Tasks.Add(new TlvTaskEntry()

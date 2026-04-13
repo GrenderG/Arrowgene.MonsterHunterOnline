@@ -33,11 +33,11 @@ namespace Arrowgene.MonsterHunterOnline.Service.Tdr.TlvStructures
 
         public void WriteTlv(IBuffer buffer)
         {
-            // TODO boundary: if (SkillWeapons.Count != ExactSkillWeapons) throw new InvalidDataException($"[TlvManuSkill] SkillWeapons count must be exactly {ExactSkillWeapons}.");
-            // TODO boundary: if (ManuSkills.Count > MaxManuSkills) throw new InvalidDataException($"[TlvManuSkill] ManuSkills exceeds max.");
-            // TODO boundary: if (Ingredients.Count > MaxIngredients) throw new InvalidDataException($"[TlvManuSkill] Ingredients exceeds max.");
-            // TODO boundary: if (FormulaBits.Length > MaxFormulaBits) throw new InvalidDataException($"[TlvManuSkill] FormulaBits exceeds max.");
-            // TODO boundary: if (Expressions.Count > MaxExpressions) throw new InvalidDataException($"[TlvManuSkill] Expressions exceeds max.");
+            //if (SkillWeapons.Count != ExactSkillWeapons) throw new InvalidDataException($"[TlvManuSkill] SkillWeapons count must be exactly {ExactSkillWeapons}.");
+            if (ManuSkills.Count > MaxManuSkills) throw new InvalidDataException($"[TlvManuSkill] ManuSkills exceeds max.");
+            if (Ingredients.Count > MaxIngredients) throw new InvalidDataException($"[TlvManuSkill] Ingredients exceeds max.");
+            if (FormulaBits.Length > MaxFormulaBits) throw new InvalidDataException($"[TlvManuSkill] FormulaBits exceeds max.");
+            if (Expressions.Count > MaxExpressions) throw new InvalidDataException($"[TlvManuSkill] Expressions exceeds max.");
 
             WriteTlvInt32(buffer, 1, Version);
             WriteTlvInt16(buffer, 2, (short)ManuSkills.Count);
@@ -45,7 +45,8 @@ namespace Arrowgene.MonsterHunterOnline.Service.Tdr.TlvStructures
             WriteTlvInt16(buffer, 4, (short)Ingredients.Count);
             WriteTlvSubStructureList(buffer, 5, Ingredients.Count, Ingredients);
             WriteTlvSubStructureList(buffer, 6, SkillWeapons.Count, SkillWeapons);
-            WriteTlvInt32(buffer, 7, FormulaBits.Length);
+            //Case 7 is ignored when magic is NoVariant
+            WriteTlvInt32(buffer, 7, FormulaBits.Length * 8); // bit count, not byte count
             WriteTlvByteArr(buffer, 8, FormulaBits);
             WriteTlvInt16(buffer, 9, (short)Expressions.Count);
             WriteTlvSubStructureList(buffer, 10, Expressions.Count, Expressions);

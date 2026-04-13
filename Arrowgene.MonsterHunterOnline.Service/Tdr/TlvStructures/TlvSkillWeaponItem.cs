@@ -41,8 +41,8 @@ namespace Arrowgene.MonsterHunterOnline.Service.Tdr.TlvStructures
 // TODO boundary:                 throw new InvalidDataException($"[TlvSkillWeaponItem] TalentLearns count exceeds max of {MaxTalentLearns}.");
 // TODO boundary:             if (TalentEquips.Count > MaxTalentEquips)
 // TODO boundary:                 throw new InvalidDataException($"[TlvSkillWeaponItem] TalentEquips count exceeds max of {MaxTalentEquips}.");
-// TODO boundary:             if (Rages.Length > MaxRages)
-// TODO boundary:                 throw new InvalidDataException($"[TlvSkillWeaponItem] Rages array exceeds max of {MaxRages}.");
+            if (Rages.Length > MaxRages)
+                throw new InvalidDataException($"[TlvSkillWeaponItem] Rages array exceeds max of {MaxRages}.");
             if (BushidoRages.Length > MaxRages) // Uses the same max count (5)
                 throw new InvalidDataException($"[TlvSkillWeaponItem] BushidoRages array exceeds max of {MaxRages}.");
 
@@ -54,9 +54,9 @@ namespace Arrowgene.MonsterHunterOnline.Service.Tdr.TlvStructures
             WriteTlvSubStructureList(buffer, 7, TalentEquips.Count, TalentEquips);
             WriteTlvByte(buffer, 8, (byte)RageIdx);
             WriteTlvByte(buffer, 9, (byte)Rages.Length);
-            WriteTlvVarInt32Arr(buffer, 10, Rages);
+            if (Rages.Length > 0) WriteTlvInt32Block(buffer, 10, Rages);
             WriteTlvByte(buffer, 11, (byte)BushidoRages.Length);
-            WriteTlvVarInt32Arr(buffer, 12, BushidoRages);
+            if (BushidoRages.Length > 0) WriteTlvInt32Block(buffer, 12, BushidoRages);
         }
     }
 }

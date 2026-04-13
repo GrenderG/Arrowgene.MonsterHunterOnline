@@ -41,7 +41,7 @@ namespace Arrowgene.MonsterHunterOnline.Service.CsProto.Structures
             StoreItem = new TlvItemList();
             Shortcut = new List<CSShortcut>();
             Buff = new List<byte>();
-            Skill = new List<byte>();
+            Skill = new TlvManuSkill();
             Pet = new List<byte>();
             FriendData = new List<FriendInfoPacket>();
             PasserbyData = new List<PasserbyInfoPacket>();
@@ -241,7 +241,7 @@ namespace Arrowgene.MonsterHunterOnline.Service.CsProto.Structures
         /// <summary>
         /// skill数据
         /// </summary>
-        public List<byte> Skill { get; }
+        public TlvManuSkill Skill { get; }
 
         /// <summary>
         /// pet数据
@@ -552,7 +552,7 @@ namespace Arrowgene.MonsterHunterOnline.Service.CsProto.Structures
             WriteTlvStructure(buffer, StoreItem, CsProtoConstant.CS_ITEM_STORE_DATA_LEN, WriteInt32);
             WriteList(buffer, Shortcut, (ushort)CsProtoConstant.CS_MAX_SHORTCUT_LEN, WriteUInt16, WriteCsStructure);
             WriteList(buffer, Buff, (ushort)CsProtoConstant.CS_MAX_BUFF_DATA_LEN, WriteUInt16, WriteByte);
-            WriteList(buffer, Skill, (ushort)CsProtoConstant.CS_MAX_SKILL_DATA_LEN, WriteUInt16, WriteByte);
+            WriteTlvStructure(buffer, Skill, (ushort)CsProtoConstant.CS_MAX_SKILL_DATA_LEN, WriteUInt16);
             WriteList(buffer, Pet, (ushort)CsProtoConstant.CS_MAX_PET_DATA_LEN, WriteUInt16, WriteByte);
             WriteList(buffer, FriendData, CsProtoConstant.CS_FRIEND_MAX, WriteInt32, WriteCsStructure);
             WriteList(buffer, PasserbyData, CsProtoConstant.CS_PASSERBY_MAX, WriteInt32, WriteCsStructure);
@@ -653,7 +653,7 @@ namespace Arrowgene.MonsterHunterOnline.Service.CsProto.Structures
             ReadList(buffer, Shortcut, (ushort)CsProtoConstant.CS_MAX_SHORTCUT_LEN, ReadUInt16,
                 ReadCsStructure<CSShortcut>);
             ReadList(buffer, Buff, (ushort)CsProtoConstant.CS_MAX_BUFF_DATA_LEN, ReadUInt16, ReadByte);
-            ReadList(buffer, Skill, (ushort)CsProtoConstant.CS_MAX_SKILL_DATA_LEN, ReadUInt16, ReadByte);
+            ReadTlvStructure(buffer, Skill, (ushort)CsProtoConstant.CS_MAX_SKILL_DATA_LEN, ReadUInt16);
             ReadList(buffer, Pet, (ushort)CsProtoConstant.CS_MAX_PET_DATA_LEN, ReadUInt16, ReadByte);
             ReadList(buffer, FriendData, CsProtoConstant.CS_FRIEND_MAX, ReadInt32, ReadCsStructure<FriendInfoPacket>);
             ReadList(buffer, PasserbyData, CsProtoConstant.CS_PASSERBY_MAX, ReadInt32,

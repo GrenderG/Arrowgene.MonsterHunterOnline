@@ -14,7 +14,7 @@ namespace Arrowgene.MonsterHunterOnline.Service.Tdr.TlvStructures
     {
         public int Id { get; set; }
         public int Value { get; set; }
-        public byte Level { get; set; }
+        public int Level { get; set; }
 
         public void ReadTlv(IBuffer buffer)
         {
@@ -22,9 +22,9 @@ namespace Arrowgene.MonsterHunterOnline.Service.Tdr.TlvStructures
         }
         public void WriteTlv(IBuffer buffer)
         {
-            WriteTlvVarInt32(buffer, 1, Id);
-            WriteTlvVarInt32(buffer, 2, Value);
-            WriteTlvByte(buffer, 3, Level);
+            WriteTlvInt32(buffer, 1, Id);
+            WriteTlvInt32(buffer, 2, Value);
+            WriteTlvInt32(buffer, 3, Level);
         }
     }
 }
