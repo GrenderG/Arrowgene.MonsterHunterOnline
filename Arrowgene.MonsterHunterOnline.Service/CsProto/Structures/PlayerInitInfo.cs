@@ -47,7 +47,7 @@ namespace Arrowgene.MonsterHunterOnline.Service.CsProto.Structures
             PasserbyData = new List<PasserbyInfoPacket>();
             BlacklistData = new List<BlacklistInfoPacket>();
             FriendGroupData = new List<FriendGroupPacket>();
-            Attr = new TlvCharAttributes(); //new TlvAttr(); // new List<byte>();
+            Attr = new TlvCharAttributes();
             Task = new TlvTaskData();
             Guild = new List<byte>();
             ActionPoint = new CSActionPointData();
