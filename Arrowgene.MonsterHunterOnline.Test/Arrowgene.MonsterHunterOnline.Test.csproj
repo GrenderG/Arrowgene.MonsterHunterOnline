@@ -17,6 +17,7 @@
         <PackageReference Include="dotnet-xunit" Version="*" />
     </ItemGroup>
     <ItemGroup>
+      <ProjectReference Include="..\Arrowgene.MonsterHunterOnline.ClientTools\Arrowgene.MonsterHunterOnline.ClientTools.csproj" />
       <ProjectReference Include="..\Arrowgene.MonsterHunterOnline.Service\Arrowgene.MonsterHunterOnline.Service.csproj" />
     </ItemGroup>
 </Project>

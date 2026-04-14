@@ -1,6 +1,8 @@
 using System.IO;
 using System.Text;
 
+namespace Arrowgene.MonsterHunterOnline.ClientTools;
+
 /// <summary>
 /// MHO user.cfg obfuscation codec.
 ///

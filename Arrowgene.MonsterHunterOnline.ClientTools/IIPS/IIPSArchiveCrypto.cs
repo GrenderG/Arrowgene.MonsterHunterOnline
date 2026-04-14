@@ -1,14 +1,14 @@
-﻿using System;
+#nullable enable
+using System;
 using System.IO;
 using System.Security.Cryptography;
-using Arrowgene.Buffers;
 
-namespace Arrowgene.MonsterHunterOnline.Service.IIPS;
+namespace Arrowgene.MonsterHunterOnline.ClientTools.IIPS;
 
-public class IIPSCrypto
+public static class IIPSArchiveCrypto
 {
-    private static uint[] IfsSectionTable = new uint[256]
-    {
+    private static readonly uint[] IfsSectionTable =
+    [
         0x193AA698, 0x5496F7D5, 0x4208931B, 0x7A4106EC, 0x83E86840, 0xF49B6F8C, 0xBA3D9A51, 0x55F54DDD,
         0x2DE51372, 0x9AFB571B, 0x3AB35406, 0xAD64FF1F, 0xC77764FE, 0x7F864466, 0x416D9CD4, 0xA2489278,
         0xE30B86E4, 0x0B5231B6, 0xBA67AED6, 0xE5AB2467, 0x60028B90, 0x1D9E20C6, 0x2A7C692A, 0x6B691CDB,
@@ -41,20 +41,21 @@ public class IIPSCrypto
         0xC3FFB370, 0x8E6F36BC, 0x6097D459, 0x514D5D36, 0xA5A737E2, 0x3977B9B3, 0xFD31A0CA, 0x903368DB,
         0xE8370D61, 0x98109520, 0xADE23CAC, 0x99F82E04, 0x41DE7EA3, 0x84A1C295, 0x09191BE0, 0x30930D02,
         0x1C9FA44A, 0xC406B6D7, 0xEEDCA152, 0x6149809C, 0xB0099EF4, 0xC5F653A5, 0x4C10790D, 0x7303286C,
-    };
-    
-    private static byte[] DatKey = new byte[16]
-    {
-        0x01, 0x09, 0x08, 0x00, 0x00, 0x02, 0x01, 0x06, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11
-    };
-    
+    ];
+
+
+    private static readonly uint[] StormBuffer = GenerateStormBuffer();
+
     public static void IfsSectionCrypt(byte[] data)
     {
-        uint ecx;
+        IfsSectionDecrypt(data);
+    }
+
+    public static void IfsSectionDecrypt(byte[] data)
+    {
         uint edx = 0x863;
         uint eax = 0xEEEEEEEE;
-        uint ebx;
-        int count = data.Length & ~3; // process all dwords (round down to multiple of 4)
+        int count = data.Length & ~3;
         for (int i = 0; i < count; i += 4)
         {
             uint input =
@@ -62,152 +63,106 @@ public class IIPSCrypto
                 (uint)data[i + 1] << 8 |
                 (uint)data[i + 2] << 16 |
                 (uint)data[i + 3] << 24;
-            ecx = edx;
-            eax = eax + IfsSectionTable[(byte)ecx];
-            ebx = edx;
-            ebx = ~ebx;
-            ebx = ebx << 0x15;
-            ecx = eax + edx;
-            ecx = ecx ^ input;
-            ebx = ebx + 0x11111111;
-            edx = edx >> 0xB;
-            edx = edx | ebx;
-            ebx = eax;
-            ebx = ebx << 0x5;
-            ebx = ebx + ecx;
-            data[i] = (byte)ecx;
-            data[i + 1] = (byte)(ecx >> 8);
-            data[i + 2] = (byte)(ecx >> 16);
-            data[i + 3] = (byte)(ecx >> 24);
-            eax = eax + ebx + 0x03;
+            eax += IfsSectionTable[(byte)edx];
+            uint plain = (eax + edx) ^ input;
+            edx = (edx >> 0x0B) | ((~edx << 0x15) + 0x11111111);
+            data[i] = (byte)plain;
+            data[i + 1] = (byte)(plain >> 8);
+            data[i + 2] = (byte)(plain >> 16);
+            data[i + 3] = (byte)(plain >> 24);
+            eax = eax + (eax << 0x5) + plain + 0x03;
         }
     }
 
-
-
-    public static byte[] DecryptDat(byte[] data)
+    public static void IfsSectionEncrypt(byte[] data)
     {
-        Aes aes = Aes.Create();
-        aes.Mode = CipherMode.ECB;
-        aes.Padding = PaddingMode.None;
-        aes.Key = DatKey;
-        ICryptoTransform encryptor = aes.CreateEncryptor();
-        return encryptor.TransformFinalBlock(data, 0, data.Length);
-    }
-
-    // Standard MPQ StormBuffer (1280 entries), generated at init.
-    // RE: ifs2.dll uses runtime-initialized table at 0x1008b7b0 for FUN_10006740 (block decryption).
-    private static readonly uint[] StormBuffer = GenerateStormBuffer();
-
-    private static uint[] GenerateStormBuffer()
-    {
-        uint[] buffer = new uint[0x500];
-        uint seed = 0x00100001;
-        for (uint index1 = 0; index1 < 0x100; index1++)
+        uint edx = 0x863;
+        uint eax = 0xEEEEEEEE;
+        int count = data.Length & ~3;
+        for (int i = 0; i < count; i += 4)
         {
-            uint index2 = index1;
-            for (int i = 0; i < 5; i++, index2 += 0x100)
-            {
-                seed = (seed * 125 + 3) % 0x2AAAAB;
-                uint temp1 = (seed & 0xFFFF) << 16;
-                seed = (seed * 125 + 3) % 0x2AAAAB;
-                uint temp2 = (seed & 0xFFFF);
-                buffer[index2] = temp1 | temp2;
-            }
+            uint plain =
+                (uint)data[i] |
+                (uint)data[i + 1] << 8 |
+                (uint)data[i + 2] << 16 |
+                (uint)data[i + 3] << 24;
+            eax += IfsSectionTable[(byte)edx];
+            uint cipher = (eax + edx) ^ plain;
+            edx = (edx >> 0x0B) | ((~edx << 0x15) + 0x11111111);
+            data[i] = (byte)cipher;
+            data[i + 1] = (byte)(cipher >> 8);
+            data[i + 2] = (byte)(cipher >> 16);
+            data[i + 3] = (byte)(cipher >> 24);
+            eax = eax + (eax << 0x5) + plain + 0x03;
         }
-        return buffer;
     }
 
-    /// <summary>
-    /// MPQ HashString — used to compute file encryption keys.
-    /// RE: Standard StormLib hash, used by ifs2.dll for file key computation.
-    /// </summary>
+
     public static uint MpqHashString(string s, uint hashType)
     {
         uint seed1 = 0x7FED7FED;
         uint seed2 = 0xEEEEEEEE;
         foreach (char c in s)
         {
-            uint ch = (uint)char.ToUpper(c);
+            uint ch = (uint)char.ToUpperInvariant(c);
             seed1 = StormBuffer[hashType + ch] ^ (seed1 + seed2);
             seed2 = ch + seed1 + seed2 + (seed2 << 5) + 3;
         }
+
         return seed1;
     }
 
-    /// <summary>
-    /// Compute the MPQ file encryption key from a filename.
-    /// RE: ifs2.dll computes key at TNIFSFile+0x0C, used by FUN_10006740.
-    /// </summary>
     public static uint ComputeFileKey(string fileName)
     {
-        // Strip path to get plain filename
-        int lastSep = fileName.LastIndexOfAny(new[] { '\\', '/' });
-        string plainName = lastSep >= 0 ? fileName.Substring(lastSep + 1) : fileName;
+        int lastSep = fileName.LastIndexOfAny(['\\', '/']);
+        string plainName = lastSep >= 0 ? fileName[(lastSep + 1)..] : fileName;
         return MpqHashString(plainName, 0x300);
     }
 
-    /// <summary>
-    /// MPQ block decryption using standard StormBuffer.
-    /// </summary>
+    public static ulong ComputeNameHash(string fileName)
+    {
+        string normalized = NormalizeArchivePath(fileName);
+        byte[] nameBytes = global::System.Text.Encoding.ASCII.GetBytes(normalized);
+        JenkinsHashlittle2(nameBytes, 2, 1, out uint pc, out uint pb);
+        return ((ulong)pb << 32) | pc;
+    }
+
+    public static string NormalizeArchivePath(string fileName)
+    {
+        return fileName.Replace('/', '\\').ToLowerInvariant();
+    }
+
     public static void MpqDecryptBlock(byte[] data, uint key)
     {
         DecryptBlockWithTable(data, key, StormBuffer, 0x400);
     }
 
-    /// <summary>
-    /// NIFS block decryption using IfsSectionTable.
-    /// RE: FUN_10006740 uses the same cipher as IfsSectionCrypt but with per-file keys.
-    /// The runtime table at 0x1008b7b0 is likely initialized from the IFS-specific table.
-    /// </summary>
+    public static void MpqEncryptBlock(byte[] data, uint key)
+    {
+        EncryptBlockWithTable(data, key, StormBuffer, 0x400);
+    }
+
     public static void IfsDecryptBlock(byte[] data, uint key)
     {
         DecryptBlockWithTable(data, key, IfsSectionTable, 0);
     }
 
-    private static void DecryptBlockWithTable(byte[] data, uint key, uint[] table, int tableOffset)
+    public static void IfsEncryptBlock(byte[] data, uint key)
     {
-        uint key2 = 0xEEEEEEEE;
-        int count = data.Length & ~3;
-        for (int i = 0; i < count; i += 4)
-        {
-            key2 += table[tableOffset + (key & 0xFF)];
-            uint input =
-                (uint)data[i] |
-                (uint)data[i + 1] << 8 |
-                (uint)data[i + 2] << 16 |
-                (uint)data[i + 3] << 24;
-            uint result = input ^ (key + key2);
-            key = ((~key << 0x15) + 0x11111111) | (key >> 0x0B);
-            key2 = result + key2 + (key2 << 5) + 3;
-            data[i] = (byte)result;
-            data[i + 1] = (byte)(result >> 8);
-            data[i + 2] = (byte)(result >> 16);
-            data[i + 3] = (byte)(result >> 24);
-        }
+        EncryptBlockWithTable(data, key, IfsSectionTable, 0);
     }
 
     public static string Md5(byte[] inputData)
     {
-        MemoryStream stream = new MemoryStream();
-        stream.Write(inputData, 0, inputData.Length);
-        stream.Seek(0, SeekOrigin.Begin);
-        using (var md5Instance = MD5.Create())
-        {
-            var hashResult = md5Instance.ComputeHash(stream);
-            return BitConverter.ToString(hashResult).Replace("-", "").ToLowerInvariant();
-        }
+        byte[] hash = MD5.HashData(inputData);
+        return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
     }
 
-    /// <summary>
-    /// Jenkins hashlittle2 — used by NIFS for filename lookup in HET table.
-    /// RE: ifs2.dll FUN_100065f0 calls FUN_10027fd0 with seeds pc=2, pb=1.
-    /// </summary>
     public static void JenkinsHashlittle2(byte[] key, uint pcInit, uint pbInit, out uint pc, out uint pb)
     {
-        uint a, b, c;
-        a = b = c = 0xDEADBEEF + (uint)key.Length + pcInit;
-        c += pbInit;
+        uint a = 0xDEADBEEF + (uint)key.Length + pcInit;
+        uint b = a;
+        uint c = a + pbInit;
 
         int offset = 0;
         int length = key.Length;
@@ -249,5 +204,69 @@ public class IIPSCrypto
 
         pc = c;
         pb = b;
+    }
+
+    private static void DecryptBlockWithTable(byte[] data, uint key, uint[] table, int tableOffset)
+    {
+        uint key2 = 0xEEEEEEEE;
+        int count = data.Length & ~3;
+        for (int i = 0; i < count; i += 4)
+        {
+            key2 += table[tableOffset + (key & 0xFF)];
+            uint input =
+                (uint)data[i] |
+                (uint)data[i + 1] << 8 |
+                (uint)data[i + 2] << 16 |
+                (uint)data[i + 3] << 24;
+            uint plain = input ^ (key + key2);
+            key = ((~key << 0x15) + 0x11111111) | (key >> 0x0B);
+            key2 = plain + key2 + (key2 << 5) + 3;
+            data[i] = (byte)plain;
+            data[i + 1] = (byte)(plain >> 8);
+            data[i + 2] = (byte)(plain >> 16);
+            data[i + 3] = (byte)(plain >> 24);
+        }
+    }
+
+    private static void EncryptBlockWithTable(byte[] data, uint key, uint[] table, int tableOffset)
+    {
+        uint key2 = 0xEEEEEEEE;
+        int count = data.Length & ~3;
+        for (int i = 0; i < count; i += 4)
+        {
+            key2 += table[tableOffset + (key & 0xFF)];
+            uint plain =
+                (uint)data[i] |
+                (uint)data[i + 1] << 8 |
+                (uint)data[i + 2] << 16 |
+                (uint)data[i + 3] << 24;
+            uint cipher = plain ^ (key + key2);
+            key = ((~key << 0x15) + 0x11111111) | (key >> 0x0B);
+            key2 = plain + key2 + (key2 << 5) + 3;
+            data[i] = (byte)cipher;
+            data[i + 1] = (byte)(cipher >> 8);
+            data[i + 2] = (byte)(cipher >> 16);
+            data[i + 3] = (byte)(cipher >> 24);
+        }
+    }
+
+    private static uint[] GenerateStormBuffer()
+    {
+        uint[] buffer = new uint[0x500];
+        uint seed = 0x00100001;
+        for (uint index1 = 0; index1 < 0x100; index1++)
+        {
+            uint index2 = index1;
+            for (int i = 0; i < 5; i++, index2 += 0x100)
+            {
+                seed = (seed * 125 + 3) % 0x2AAAAB;
+                uint temp1 = (seed & 0xFFFF) << 16;
+                seed = (seed * 125 + 3) % 0x2AAAAB;
+                uint temp2 = seed & 0xFFFF;
+                buffer[index2] = temp1 | temp2;
+            }
+        }
+
+        return buffer;
     }
 }

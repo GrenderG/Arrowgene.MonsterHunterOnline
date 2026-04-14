@@ -3,7 +3,7 @@ using System.IO;
 using System.Text;
 using Arrowgene.Logging;
 
-namespace Arrowgene.MonsterHunterOnline.Service.IIPS;
+namespace Arrowgene.MonsterHunterOnline.ClientTools.Dat;
 
 public class TsvSheet
 {

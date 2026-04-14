@@ -2,7 +2,8 @@
 using System.IO;
 using System.Linq;
 using Arrowgene.Logging;
-using Arrowgene.MonsterHunterOnline.Service.IIPS;
+using Arrowgene.MonsterHunterOnline.ClientTools.Dat;
+using Arrowgene.MonsterHunterOnline.ClientTools.IIPS;
 
 namespace Arrowgene.MonsterHunterOnline.Cli.Command
 {
@@ -90,36 +91,21 @@ namespace Arrowgene.MonsterHunterOnline.Cli.Command
                 {
                     if (staticFile.EndsWith(".ifs"))
                     {
-                        IIPSFile ifs = new IIPSFile();
-                        ifs.Open(staticFile);
+                        using IIPSArchive archive = IIPSArchive.Open(staticFile);
 
                         Logger.Info($"Archive: {Path.GetFileName(staticFile)}");
-                        Logger.Info($"  Entries: {ifs.Entries.Count}, FileNames: {ifs.FileNames.Count}");
+                        Logger.Info($"  Entries: {archive.Entries.Count}, ArchivePaths: {archive.ArchivePaths.Count}");
 
                         int named = 0;
-                        foreach (var entry in ifs.Entries)
+                        foreach (var entry in archive.Entries)
                         {
-                            if (!string.IsNullOrEmpty(entry.FileName)) named++;
+                            if (!string.IsNullOrEmpty(entry.ArchivePath)) named++;
                         }
                         Logger.Info($"  Named entries: {named}");
 
-                        // Show first 20 named files as sample
-                        int shown = 0;
-                        foreach (var entry in ifs.Entries)
-                        {
-                            if (!string.IsNullOrEmpty(entry.FileName) && shown < 20)
-                            {
-                                Logger.Info($"    [{entry.Index}] {entry.FileName} " +
-                                            $"(size={entry.FileSize}, cmp={entry.CompressedSize}, " +
-                                            $"flags=0x{entry.Flags:X8})");
-                                shown++;
-                            }
-                        }
-
                         if (outDir != null)
                         {
-                            string archiveOutDir = Path.Combine(outDir, Path.GetFileNameWithoutExtension(staticFile));
-                            ifs.ExtractAll(archiveOutDir);
+                            archive.ExtractAll(outDir);
                         }
                     }
                 }

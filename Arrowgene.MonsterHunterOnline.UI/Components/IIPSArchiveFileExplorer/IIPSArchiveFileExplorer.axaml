@@ -1,0 +1,626 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:local="using:Arrowgene.MonsterHunterOnline.UI.Components"
+             x:Class="Arrowgene.MonsterHunterOnline.UI.Components.IIPSArchiveFileExplorer"
+             x:DataType="local:IIPSArchiveFileExplorerViewModel"
+             mc:Ignorable="d">
+
+    <Design.DataContext>
+        <local:IIPSArchiveFileExplorerViewModel />
+    </Design.DataContext>
+
+    <UserControl.Resources>
+        <StreamGeometry x:Key="SaveIcon">M3,3 H13 V13 H3 Z M5,3 V6 H11 V3 M5,9 H11 V11 H5 Z</StreamGeometry>
+        <StreamGeometry x:Key="AddIcon">M4,2 H10 L13,5 V14 H4 Z M10,2 V5 H13 M8,7 V11 M6,9 H10</StreamGeometry>
+        <StreamGeometry x:Key="EditIcon">M4,11 L4,13 L6,13 L12,7 L10,5 Z M9,6 L11,8</StreamGeometry>
+        <StreamGeometry x:Key="RemoveIcon">M4,2 H10 L13,5 V14 H4 Z M10,2 V5 H13 M6,9 H10</StreamGeometry>
+        <StreamGeometry x:Key="FolderClosedIcon">M1.5,4.5 H6 L7.5,6 H14.5 V13.5 H1.5 Z</StreamGeometry>
+        <StreamGeometry x:Key="FolderOpenIcon">M1.5,5 H6.5 L8,6.5 H14.5 L13.5,13.5 H2.5 Z</StreamGeometry>
+        <StreamGeometry x:Key="FileIcon">M4,1.5 H9.5 L13,5 V14.5 H4 Z M9.5,1.5 V5 H13</StreamGeometry>
+    </UserControl.Resources>
+
+    <UserControl.Styles>
+        <Style Selector="Border.pane">
+            <Setter Property="Background" Value="#F8F7F4" />
+            <Setter Property="BorderBrush" Value="#D7D3CC" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="Padding" Value="12" />
+        </Style>
+
+        <Style Selector="Border.pill">
+            <Setter Property="Background" Value="#ECE9E2" />
+            <Setter Property="CornerRadius" Value="999" />
+            <Setter Property="Padding" Value="10,4" />
+        </Style>
+
+        <Style Selector="TextBlock.caption">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Foreground" Value="#667085" />
+        </Style>
+
+        <Style Selector="Button.toolbar-text">
+            <Setter Property="Padding" Value="12,6" />
+            <Setter Property="MinHeight" Value="34" />
+        </Style>
+
+        <Style Selector="TextBox.filter-box">
+            <Setter Property="MinHeight" Value="34" />
+            <Setter Property="Padding" Value="10,7" />
+            <Setter Property="Background" Value="#FFFFFF" />
+            <Setter Property="BorderBrush" Value="#D7D3CC" />
+            <Setter Property="BorderThickness" Value="1" />
+        </Style>
+
+        <Style Selector="Button.toolbar-icon">
+            <Setter Property="Width" Value="34" />
+            <Setter Property="Height" Value="34" />
+            <Setter Property="Padding" Value="0" />
+        </Style>
+
+        <Style Selector="PathIcon.toolbar-icon">
+            <Setter Property="Width" Value="14" />
+            <Setter Property="Height" Value="14" />
+            <Setter Property="Foreground" Value="#F9FAFB" />
+        </Style>
+
+        <Style Selector="PathIcon.tree-icon">
+            <Setter Property="Width" Value="13" />
+            <Setter Property="Height" Value="13" />
+            <Setter Property="Foreground" Value="#64748B" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+
+        <Style Selector="ListBox.archive-file-list">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
+    </UserControl.Styles>
+
+    <Border Background="#F2F1EC">
+        <DockPanel LastChildFill="True">
+            <Border DockPanel.Dock="Top"
+                    Background="#111827"
+                    Padding="16,12">
+                <Grid ColumnDefinitions="*,Auto"
+                      ColumnSpacing="16">
+                    <StackPanel Spacing="4">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Text="{Binding ArchiveFileName}"
+                                       FontSize="18"
+                                       FontWeight="SemiBold"
+                                       Foreground="#F9FAFB"
+                                       TextTrimming="CharacterEllipsis" />
+                            <Border Background="#C2410C"
+                                    CornerRadius="999"
+                                    Padding="8,2"
+                                    IsVisible="{Binding HasUnsavedChanges}">
+                                <TextBlock Text="Modified"
+                                           FontSize="11"
+                                           FontWeight="Bold"
+                                           Foreground="#FFF7ED" />
+                            </Border>
+                        </StackPanel>
+                        <TextBlock Text="{Binding ArchiveFilePath}"
+                                   MaxLines="1"
+                                   TextTrimming="CharacterEllipsis"
+                                   Foreground="#9CA3AF"
+                                   ToolTip.Tip="{Binding ArchiveFilePath}" />
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="1"
+                                Orientation="Horizontal"
+                                VerticalAlignment="Center"
+                                Spacing="8">
+                        <Button Classes="toolbar-text"
+                                Content="Open"
+                                Click="OpenArchiveClick" />
+                        <Button Classes="toolbar-icon"
+                                Click="SaveArchiveClick"
+                                IsEnabled="{Binding CanSaveArchive}"
+                                ToolTip.Tip="Save archive">
+                            <PathIcon Classes="toolbar-icon"
+                                      Data="{StaticResource SaveIcon}" />
+                        </Button>
+
+                        <Border Width="1"
+                                Height="20"
+                                Background="#374151"
+                                VerticalAlignment="Center" />
+
+                        <Button Classes="toolbar-icon"
+                                Click="AddFileClick"
+                                IsEnabled="{Binding CanAddFile}"
+                                ToolTip.Tip="Add file">
+                            <PathIcon Classes="toolbar-icon"
+                                      Data="{StaticResource AddIcon}" />
+                        </Button>
+                        <Button Classes="toolbar-icon"
+                                Click="ModifySelectionClick"
+                                IsEnabled="{Binding CanModifySelection}"
+                                ToolTip.Tip="Modify selected file">
+                            <PathIcon Classes="toolbar-icon"
+                                      Data="{StaticResource EditIcon}" />
+                        </Button>
+                        <Button Classes="toolbar-icon"
+                                Click="RemoveSelectionClick"
+                                IsEnabled="{Binding CanRemoveSelection}"
+                                ToolTip.Tip="Remove selection">
+                            <PathIcon Classes="toolbar-icon"
+                                      Data="{StaticResource RemoveIcon}" />
+                        </Button>
+
+                        <Border Width="1"
+                                Height="20"
+                                Background="#374151"
+                                VerticalAlignment="Center" />
+
+                        <Button Classes="toolbar-text"
+                                Content="Extract"
+                                Click="ExtractSelectionClick"
+                                IsEnabled="{Binding CanExtractSelection}" />
+                        <Button Classes="toolbar-text"
+                                Content="Extract All"
+                                Click="ExtractAllClick"
+                                IsEnabled="{Binding HasArchive}" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <Border DockPanel.Dock="Top"
+                    Background="#E8E5DE"
+                    BorderBrush="#D7D3CC"
+                    BorderThickness="0,0,0,1"
+                    Padding="16,8">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <Border Classes="pill">
+                        <TextBlock Text="{Binding EntryCount, StringFormat=Entries {0}}"
+                                   FontWeight="SemiBold"
+                                   Foreground="#334155" />
+                    </Border>
+                    <Border Classes="pill">
+                        <TextBlock Text="{Binding DirectoryCount, StringFormat=Folders {0}}"
+                                   FontWeight="SemiBold"
+                                   Foreground="#334155" />
+                    </Border>
+                    <Border Classes="pill">
+                        <TextBlock Text="{Binding NamedEntryCount, StringFormat=Named {0}}"
+                                   FontWeight="SemiBold"
+                                   Foreground="#334155" />
+                    </Border>
+                    <Border Classes="pill">
+                        <TextBlock Text="{Binding UnnamedEntryCount, StringFormat=Unnamed {0}}"
+                                   FontWeight="SemiBold"
+                                   Foreground="#334155" />
+                    </Border>
+                </StackPanel>
+            </Border>
+
+            <Border DockPanel.Dock="Bottom"
+                    Background="#F8F7F4"
+                    BorderBrush="#D7D3CC"
+                    BorderThickness="0,1,0,0"
+                    Padding="12,8">
+                <TextBlock Text="{Binding StatusText}"
+                           MaxLines="1"
+                           TextTrimming="CharacterEllipsis"
+                           Foreground="#334155"
+                           ToolTip.Tip="{Binding StatusText}" />
+            </Border>
+
+            <Grid ColumnDefinitions="1.9*,6,1.15*"
+                  MinHeight="0">
+                <Border Grid.Column="0"
+                        Classes="pane"
+                        Margin="12,12,6,12"
+                        MinHeight="0">
+                    <Grid RowDefinitions="Auto,Auto,*"
+                          MinHeight="0">
+                        <Grid Grid.Row="0"
+                              ColumnDefinitions="*,Auto"
+                              Margin="0,0,0,8">
+                            <StackPanel Spacing="2">
+                                <TextBlock Text="Files"
+                                           FontSize="14"
+                                           FontWeight="SemiBold"
+                                           Foreground="#0F172A" />
+                                <TextBlock Text="All archive files"
+                                           Classes="caption" />
+                            </StackPanel>
+                            <TextBlock Grid.Column="1"
+                                       Text="{Binding FilterSummaryText}"
+                                       Classes="caption"
+                                       VerticalAlignment="Center"
+                                       HorizontalAlignment="Right" />
+                        </Grid>
+
+                        <Grid Grid.Row="1"
+                              ColumnDefinitions="*,Auto"
+                              ColumnSpacing="8"
+                              Margin="0,0,0,8">
+                            <TextBox Classes="filter-box"
+                                     Text="{Binding FilterText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                     PlaceholderText="Filter files by name or path" />
+                            <Button Grid.Column="1"
+                                    Classes="toolbar-text"
+                                    Content="Clear"
+                                    Click="ClearFilterClick"
+                                    IsEnabled="{Binding HasActiveFilter}" />
+                        </Grid>
+
+                        <Border Grid.Row="2"
+                                Background="#FFFFFF"
+                                BorderBrush="#D7D3CC"
+                                BorderThickness="1"
+                                CornerRadius="10"
+                                Padding="8"
+                                MinHeight="0">
+                            <Grid RowDefinitions="Auto,*"
+                                  MinHeight="0">
+                                <Grid Grid.Row="0"
+                                      ColumnDefinitions="Auto,180,*,Auto"
+                                      ColumnSpacing="8"
+                                      Margin="4,0,4,6"
+                                      IsVisible="{Binding HasVisibleNodes}">
+                                    <TextBlock Grid.Column="1"
+                                               Text="Name"
+                                               Classes="caption"
+                                               FontWeight="SemiBold" />
+                                    <TextBlock Grid.Column="2"
+                                               Text="Folder"
+                                               Classes="caption"
+                                               FontWeight="SemiBold" />
+                                    <TextBlock Grid.Column="3"
+                                               Text="Size"
+                                               Classes="caption"
+                                               FontWeight="SemiBold"
+                                               HorizontalAlignment="Right" />
+                                </Grid>
+
+                                <Grid Grid.Row="1"
+                                      MinHeight="0">
+                                    <ListBox Classes="archive-file-list"
+                                             ItemsSource="{Binding RootNodes}"
+                                             SelectedItem="{Binding SelectedNode, Mode=TwoWay}"
+                                             MinHeight="0"
+                                             IsVisible="{Binding HasVisibleNodes}">
+                                        <ListBox.ItemTemplate>
+                                            <DataTemplate x:DataType="local:IIPSArchiveTreeNodeViewModel">
+                                                <Grid ColumnDefinitions="Auto,180,*,Auto"
+                                                      ColumnSpacing="8"
+                                                      Margin="4,1">
+                                                    <PathIcon Grid.Column="0"
+                                                              Classes="tree-icon"
+                                                              Data="{StaticResource FileIcon}" />
+
+                                                    <TextBlock Grid.Column="1"
+                                                               Text="{Binding Name}"
+                                                               FontWeight="SemiBold"
+                                                               Foreground="#0F172A"
+                                                               FontSize="13"
+                                                               TextTrimming="CharacterEllipsis"
+                                                               VerticalAlignment="Center"
+                                                               ToolTip.Tip="{Binding Name}" />
+
+                                                    <TextBlock Grid.Column="2"
+                                                               Text="{Binding ParentPath}"
+                                                               Foreground="#475467"
+                                                               FontSize="12"
+                                                               TextTrimming="CharacterEllipsis"
+                                                               VerticalAlignment="Center"
+                                                               ToolTip.Tip="{Binding DisplayPath}" />
+
+                                                    <TextBlock Grid.Column="3"
+                                                               Text="{Binding SummaryText}"
+                                                               Classes="caption"
+                                                               VerticalAlignment="Center"
+                                                               HorizontalAlignment="Right" />
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ListBox.ItemTemplate>
+                                    </ListBox>
+
+                                    <StackPanel IsVisible="{Binding ShowTreeEmptyState}"
+                                                Spacing="6"
+                                                HorizontalAlignment="Center"
+                                                VerticalAlignment="Center">
+                                        <TextBlock Text="No Visible Files"
+                                                   FontSize="14"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="#0F172A"
+                                                   HorizontalAlignment="Center" />
+                                        <TextBlock Text="{Binding TreeEmptyStateText}"
+                                                   Classes="caption"
+                                                   TextWrapping="Wrap"
+                                                   TextAlignment="Center"
+                                                   MaxWidth="260" />
+                                    </StackPanel>
+                                </Grid>
+                            </Grid>
+                        </Border>
+                    </Grid>
+                </Border>
+
+                <GridSplitter Grid.Column="1"
+                              Width="6"
+                              Background="#DDD9D1"
+                              ShowsPreview="True"
+                              HorizontalAlignment="Stretch"
+                              VerticalAlignment="Stretch" />
+
+                <Border Grid.Column="2"
+                        Classes="pane"
+                        Margin="0,12,12,12"
+                        MinHeight="0">
+                    <Grid RowDefinitions="Auto,*"
+                          MinHeight="0">
+                        <StackPanel Grid.Row="0"
+                                    Spacing="4"
+                                    Margin="0,0,0,10">
+                            <TextBlock Text="{Binding SelectedName}"
+                                       FontSize="16"
+                                       FontWeight="SemiBold"
+                                       Foreground="#0F172A"
+                                       TextTrimming="CharacterEllipsis" />
+                            <TextBlock Text="{Binding SelectedPath}"
+                                       Classes="caption"
+                                       TextWrapping="Wrap"
+                                       ToolTip.Tip="{Binding SelectedPath}" />
+                        </StackPanel>
+
+                        <ScrollViewer Grid.Row="1"
+                                      VerticalScrollBarVisibility="Auto"
+                                      HorizontalScrollBarVisibility="Disabled"
+                                      MinHeight="0">
+                            <StackPanel Spacing="12">
+                                <Border Background="#FFFFFF"
+                                        BorderBrush="#D7D3CC"
+                                        BorderThickness="1"
+                                        CornerRadius="10"
+                                        Padding="12">
+                                    <StackPanel Spacing="8">
+                                        <Grid ColumnDefinitions="*,Auto"
+                                              ColumnSpacing="8">
+                                            <TextBlock Text="Preview"
+                                                       FontSize="13"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="#0F172A" />
+                                            <TextBlock Grid.Column="1"
+                                                       Text="{Binding PreviewDetails}"
+                                                       Classes="caption"
+                                                       VerticalAlignment="Center" />
+                                        </Grid>
+
+                                        <Border Background="#EEF2F6"
+                                                BorderBrush="#D7D3CC"
+                                                BorderThickness="1"
+                                                CornerRadius="8"
+                                                Padding="8"
+                                                MinHeight="180"
+                                                MaxHeight="260">
+                                            <Grid>
+                                                <Image Source="{Binding PreviewBitmap}"
+                                                       IsVisible="{Binding HasImagePreview}"
+                                                       Stretch="Uniform"
+                                                       HorizontalAlignment="Stretch"
+                                                       VerticalAlignment="Stretch" />
+
+                                                <ScrollViewer IsVisible="{Binding HasTextPreview}"
+                                                              HorizontalScrollBarVisibility="Auto"
+                                                              VerticalScrollBarVisibility="Auto">
+                                                    <SelectableTextBlock Text="{Binding TextPreviewContent}"
+                                                                         Foreground="#0F172A"
+                                                                         TextWrapping="NoWrap"
+                                                                         FontSize="12" />
+                                                </ScrollViewer>
+                                            </Grid>
+                                        </Border>
+
+                                        <TextBlock Text="{Binding PreviewStatus}"
+                                                   Classes="caption"
+                                                   TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Background="#FFFFFF"
+                                        BorderBrush="#D7D3CC"
+                                        BorderThickness="1"
+                                        CornerRadius="10"
+                                        Padding="12">
+                                    <Grid ColumnDefinitions="88,*"
+                                          RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto"
+                                          ColumnSpacing="12"
+                                          RowSpacing="8">
+                                        <TextBlock Text="Name"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="#0F172A" />
+                                        <SelectableTextBlock Grid.Column="1"
+                                                             Foreground="#0F172A"
+                                                             Text="{Binding SelectedName}"
+                                                             TextWrapping="Wrap" />
+
+                                        <TextBlock Grid.Row="1"
+                                                   Text="Path"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="#0F172A" />
+                                        <SelectableTextBlock Grid.Row="1"
+                                                             Grid.Column="1"
+                                                             Foreground="#0F172A"
+                                                             Text="{Binding SelectedPath}"
+                                                             TextWrapping="Wrap" />
+
+                                        <TextBlock Grid.Row="2"
+                                                   Text="Type"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="#0F172A" />
+                                        <TextBlock Grid.Row="2"
+                                                   Grid.Column="1"
+                                                   Foreground="#0F172A"
+                                                   Text="{Binding SelectedType}"
+                                                   TextWrapping="Wrap" />
+
+                                        <TextBlock Grid.Row="3"
+                                                   Text="Size"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="#0F172A" />
+                                        <TextBlock Grid.Row="3"
+                                                   Grid.Column="1"
+                                                   Foreground="#0F172A"
+                                                   Text="{Binding SelectedLength}"
+                                                   TextWrapping="Wrap" />
+
+                                        <TextBlock Grid.Row="4"
+                                                   Text="Stored"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="#0F172A" />
+                                        <TextBlock Grid.Row="4"
+                                                   Grid.Column="1"
+                                                   Foreground="#0F172A"
+                                                   Text="{Binding SelectedStoredLength}"
+                                                   TextWrapping="Wrap" />
+
+                                        <TextBlock Grid.Row="5"
+                                                   Text="Flags"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="#0F172A" />
+                                        <SelectableTextBlock Grid.Row="5"
+                                                             Grid.Column="1"
+                                                             Foreground="#0F172A"
+                                                             Text="{Binding SelectedFlags}"
+                                                             TextWrapping="Wrap" />
+
+                                        <TextBlock Grid.Row="6"
+                                                   Text="XML"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="#0F172A" />
+                                        <TextBlock Grid.Row="6"
+                                                   Grid.Column="1"
+                                                   Foreground="#0F172A"
+                                                   Text="{Binding SelectedXmlFormat}"
+                                                   TextWrapping="Wrap" />
+
+                                        <TextBlock Grid.Row="7"
+                                                   Text="MD5 / Id"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="#0F172A" />
+                                        <StackPanel Grid.Row="7"
+                                                    Grid.Column="1"
+                                                    Spacing="4">
+                                            <SelectableTextBlock Foreground="#0F172A"
+                                                                 Text="{Binding SelectedHash}"
+                                                                 TextWrapping="Wrap" />
+                                            <TextBlock Text="{Binding SelectedIndex}"
+                                                       Classes="caption" />
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+
+                                <Border Background="#FFFFFF"
+                                        BorderBrush="#D7D3CC"
+                                        BorderThickness="1"
+                                        CornerRadius="10"
+                                        Padding="12">
+                                    <StackPanel Spacing="10">
+                                        <TextBlock Text="Archive"
+                                                   FontSize="13"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="#0F172A" />
+                                        <Grid ColumnDefinitions="88,*"
+                                              RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto"
+                                              ColumnSpacing="12"
+                                              RowSpacing="8">
+                                            <TextBlock Text="Source"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="#0F172A" />
+                                            <SelectableTextBlock Grid.Column="1"
+                                                                 Foreground="#0F172A"
+                                                                 Text="{Binding ArchiveFilePath}"
+                                                                 TextWrapping="Wrap" />
+
+                                            <TextBlock Grid.Row="1"
+                                                       Text="Format"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="#0F172A" />
+                                            <TextBlock Grid.Row="1"
+                                                       Grid.Column="1"
+                                                       Foreground="#0F172A"
+                                                       Text="{Binding FormatVersionText}" />
+
+                                            <TextBlock Grid.Row="2"
+                                                       Text="Sector"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="#0F172A" />
+                                            <TextBlock Grid.Row="2"
+                                                       Grid.Column="1"
+                                                       Foreground="#0F172A"
+                                                       Text="{Binding SectorSizeText}" />
+
+                                            <TextBlock Grid.Row="3"
+                                                       Text="Entries"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="#0F172A" />
+                                            <TextBlock Grid.Row="3"
+                                                       Grid.Column="1"
+                                                       Foreground="#0F172A"
+                                                       Text="{Binding EntryCount}" />
+
+                                            <TextBlock Grid.Row="4"
+                                                       Text="Named"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="#0F172A" />
+                                            <TextBlock Grid.Row="4"
+                                                       Grid.Column="1"
+                                                       Foreground="#0F172A"
+                                                       Text="{Binding NamedEntryCount}" />
+
+                                            <TextBlock Grid.Row="5"
+                                                       Text="Unnamed"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="#0F172A" />
+                                            <TextBlock Grid.Row="5"
+                                                       Grid.Column="1"
+                                                       Foreground="#0F172A"
+                                                       Text="{Binding UnnamedEntryCount}" />
+
+                                            <TextBlock Grid.Row="6"
+                                                       Text="Header"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="#0F172A" />
+                                            <SelectableTextBlock Grid.Row="6"
+                                                                 Grid.Column="1"
+                                                                 Foreground="#0F172A"
+                                                                 Text="{Binding HeaderHashText}"
+                                                                 TextWrapping="Wrap" />
+
+                                            <TextBlock Grid.Row="7"
+                                                       Text="BET"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="#0F172A" />
+                                            <SelectableTextBlock Grid.Row="7"
+                                                                 Grid.Column="1"
+                                                                 Foreground="#0F172A"
+                                                                 Text="{Binding BetHashText}"
+                                                                 TextWrapping="Wrap" />
+
+                                            <TextBlock Grid.Row="8"
+                                                       Text="HET"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="#0F172A" />
+                                            <SelectableTextBlock Grid.Row="8"
+                                                                 Grid.Column="1"
+                                                                 Foreground="#0F172A"
+                                                                 Text="{Binding HetHashText}"
+                                                                 TextWrapping="Wrap" />
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Grid>
+                </Border>
+            </Grid>
+        </DockPanel>
+    </Border>
+</UserControl>
