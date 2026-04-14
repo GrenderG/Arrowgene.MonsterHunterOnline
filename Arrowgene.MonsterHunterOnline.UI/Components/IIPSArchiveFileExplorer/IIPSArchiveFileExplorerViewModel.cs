@@ -5,12 +5,23 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using Avalonia.Media.Imaging;
+using Arrowgene.Lua.Decompiler;
+using Arrowgene.Lua.Decompiler.Decompile;
+using Arrowgene.Lua.Decompiler.Parse;
 using Arrowgene.MonsterHunterOnline.ClientTools;
+using Arrowgene.MonsterHunterOnline.ClientTools.Dat;
 using Arrowgene.MonsterHunterOnline.ClientTools.IIPS;
 using Arrowgene.MonsterHunterOnline.UI.Infrastructure;
 using Arrowgene.MonsterHunterOnline.UI.ViewModels;
 
 namespace Arrowgene.MonsterHunterOnline.UI.Components;
+
+public sealed class DatSheetViewModel
+{
+    public string Name { get; init; } = string.Empty;
+    public string[] Headers { get; init; } = Array.Empty<string>();
+    public List<string[]> Rows { get; init; } = [];
+}
 
 public sealed class IIPSArchiveFileExplorerViewModel : ViewModelBase, IDisposable
 {
@@ -24,13 +35,14 @@ public sealed class IIPSArchiveFileExplorerViewModel : ViewModelBase, IDisposabl
     };
     private static readonly HashSet<string> PreviewableTextExtensions = new(StringComparer.OrdinalIgnoreCase)
     {
-        ".txt", ".json", ".xml", ".ini", ".cfg"
+        ".txt", ".json", ".xml", ".ini", ".cfg", ".lua"
     };
     private static readonly UTF8Encoding Utf8Strict = new(false, true);
     private static readonly UnicodeEncoding Utf16LeStrict = new(false, false, true);
     private static readonly UnicodeEncoding Utf16BeStrict = new(true, false, true);
     private static readonly UTF32Encoding Utf32LeStrict = new(false, false, true);
     private static readonly UTF32Encoding Utf32BeStrict = new(true, false, true);
+    private static readonly Encoding GbkEncoding = Encoding.GetEncoding("GBK", EncoderFallback.ExceptionFallback, DecoderFallback.ExceptionFallback);
 
     private IIPSArchive? _archive;
     private string _archiveFileName = "No archive loaded";
@@ -67,14 +79,25 @@ public sealed class IIPSArchiveFileExplorerViewModel : ViewModelBase, IDisposabl
     private string _selectedStoredLength = "-";
     private string _selectedFlags = "-";
     private string _selectedXmlFormat = "-";
+    private string _selectedLuaFormat = "-";
     private string _selectedHash = "-";
     private string _selectedIndex = "-";
     private Bitmap? _previewBitmap;
     private bool _hasImagePreview;
     private bool _hasTextPreview;
+    private bool _hasTablePreview;
     private string _textPreviewContent = string.Empty;
     private string _previewStatus = "Select a previewable file to preview.";
     private string _previewDetails = "-";
+    private string[] _tablePreviewHeaders = Array.Empty<string>();
+    private List<string[]> _tablePreviewRows = [];
+    private bool _hasDatPreview;
+    private List<DatSheetViewModel> _datPreviewSheets = [];
+    private int _datSelectedSheetIndex;
+    private bool _isHexMode;
+    private bool _isHexFallback;
+    private byte[]? _currentPreviewData;
+    private long _currentPreviewLength;
 
     public string ArchiveFileName
     {
@@ -123,6 +146,8 @@ public sealed class IIPSArchiveFileExplorerViewModel : ViewModelBase, IDisposabl
         get => _hetHashText;
         private set => SetProperty(ref _hetHashText, value);
     }
+
+    public string HashSummaryTooltip => $"Header: {HeaderHashText}\nBET: {BetHashText}\nHET: {HetHashText}";
 
     public int EntryCount
     {
@@ -296,6 +321,12 @@ public sealed class IIPSArchiveFileExplorerViewModel : ViewModelBase, IDisposabl
         private set => SetProperty(ref _selectedXmlFormat, value);
     }
 
+    public string SelectedLuaFormat
+    {
+        get => _selectedLuaFormat;
+        private set => SetProperty(ref _selectedLuaFormat, value);
+    }
+
     public string SelectedHash
     {
         get => _selectedHash;
@@ -325,6 +356,56 @@ public sealed class IIPSArchiveFileExplorerViewModel : ViewModelBase, IDisposabl
         get => _hasTextPreview;
         private set => SetProperty(ref _hasTextPreview, value);
     }
+
+    public bool HasTablePreview
+    {
+        get => _hasTablePreview;
+        private set => SetProperty(ref _hasTablePreview, value);
+    }
+
+    public string[] TablePreviewHeaders
+    {
+        get => _tablePreviewHeaders;
+        private set => SetProperty(ref _tablePreviewHeaders, value);
+    }
+
+    public List<string[]> TablePreviewRows
+    {
+        get => _tablePreviewRows;
+        private set => SetProperty(ref _tablePreviewRows, value);
+    }
+
+    public bool HasDatPreview
+    {
+        get => _hasDatPreview;
+        private set => SetProperty(ref _hasDatPreview, value);
+    }
+
+    public List<DatSheetViewModel> DatPreviewSheets
+    {
+        get => _datPreviewSheets;
+        private set => SetProperty(ref _datPreviewSheets, value);
+    }
+
+    public int DatSelectedSheetIndex
+    {
+        get => _datSelectedSheetIndex;
+        set => SetProperty(ref _datSelectedSheetIndex, value);
+    }
+
+    public bool IsHexMode
+    {
+        get => _isHexMode;
+        private set => SetProperty(ref _isHexMode, value);
+    }
+
+    public bool IsHexFallback
+    {
+        get => _isHexFallback;
+        private set => SetProperty(ref _isHexFallback, value);
+    }
+
+    public bool CanToggleHex => _selectedNode?.Entry != null && !_isHexFallback;
 
     public string TextPreviewContent
     {
@@ -574,6 +655,7 @@ public sealed class IIPSArchiveFileExplorerViewModel : ViewModelBase, IDisposabl
         HeaderHashText = archive.Metadata.HeaderMd5;
         BetHashText = archive.Metadata.BetMd5;
         HetHashText = archive.Metadata.HetMd5;
+        OnPropertyChanged(nameof(HashSummaryTooltip));
         HasArchive = true;
         HasUnsavedChanges = false;
 
@@ -728,6 +810,7 @@ public sealed class IIPSArchiveFileExplorerViewModel : ViewModelBase, IDisposabl
             SelectedStoredLength = "-";
             SelectedFlags = "-";
             SelectedXmlFormat = "-";
+            SelectedLuaFormat = "-";
             SelectedHash = "-";
             SelectedIndex = "-";
             ResetPreview("Select a previewable file to preview.");
@@ -744,6 +827,7 @@ public sealed class IIPSArchiveFileExplorerViewModel : ViewModelBase, IDisposabl
             SelectedStoredLength = "-";
             SelectedFlags = "Virtual folder";
             SelectedXmlFormat = "-";
+            SelectedLuaFormat = "-";
             SelectedHash = "-";
             SelectedIndex = "-";
             ResetPreview("Folders do not have previews.");
@@ -754,6 +838,7 @@ public sealed class IIPSArchiveFileExplorerViewModel : ViewModelBase, IDisposabl
         SelectedStoredLength = FormatSize(node.Entry.StoredLength);
         SelectedFlags = FormatFlags(node.Entry);
         SelectedXmlFormat = DescribeXmlFormat(node.Entry);
+        SelectedLuaFormat = DescribeLuaFormat(node.Entry);
         SelectedHash = node.Entry.Md5;
         SelectedIndex = node.Entry.Index.ToString();
         UpdatePreview(node);
@@ -782,6 +867,7 @@ public sealed class IIPSArchiveFileExplorerViewModel : ViewModelBase, IDisposabl
         HeaderHashText = "-";
         BetHashText = "-";
         HetHashText = "-";
+        OnPropertyChanged(nameof(HashSummaryTooltip));
         EntryCount = 0;
         NamedEntryCount = 0;
         UnnamedEntryCount = 0;
@@ -941,25 +1027,48 @@ public sealed class IIPSArchiveFileExplorerViewModel : ViewModelBase, IDisposabl
         return null;
     }
 
+    public void ToggleHexMode()
+    {
+        if (_isHexFallback) return;
+        IsHexMode = !IsHexMode;
+        if (_selectedNode != null)
+        {
+            UpdatePreview(_selectedNode);
+        }
+    }
+
     private void UpdatePreview(IIPSArchiveTreeNodeViewModel node)
     {
+        IsHexFallback = false;
+        OnPropertyChanged(nameof(CanToggleHex));
+
         IIPSArchiveEntry? entry = node.Entry;
         if (entry == null)
         {
+            _currentPreviewData = null;
+            IsHexMode = false;
             ResetPreview("Preview unavailable.");
+            return;
+        }
+
+        if (entry.Length <= 0)
+        {
+            _currentPreviewData = null;
+            IsHexMode = false;
+            ResetPreview("Empty file.");
+            return;
+        }
+
+        if (IsHexMode)
+        {
+            UpdateHexPreview(node);
             return;
         }
 
         string? extension = Path.GetExtension(entry.ArchivePath ?? node.Name);
         if (string.IsNullOrWhiteSpace(extension))
         {
-            ResetPreview("No preview for this file type.");
-            return;
-        }
-
-        if (entry.Length <= 0)
-        {
-            ResetPreview("Empty file.");
+            UpdateHexPreview(node);
             return;
         }
 
@@ -969,13 +1078,25 @@ public sealed class IIPSArchiveFileExplorerViewModel : ViewModelBase, IDisposabl
             return;
         }
 
+        if (string.Equals(extension, ".dat", StringComparison.OrdinalIgnoreCase))
+        {
+            UpdateDatPreview(node);
+            return;
+        }
+
+        if (string.Equals(extension, ".csv", StringComparison.OrdinalIgnoreCase))
+        {
+            UpdateCsvPreview(node);
+            return;
+        }
+
         if (PreviewableTextExtensions.Contains(extension))
         {
             UpdateTextPreview(node);
             return;
         }
 
-        ResetPreview("No preview for this file type.");
+        UpdateHexPreview(node);
     }
 
     private void UpdateImagePreview(IIPSArchiveTreeNodeViewModel node)
@@ -1051,6 +1172,28 @@ public sealed class IIPSArchiveFileExplorerViewModel : ViewModelBase, IDisposabl
                 return;
             }
 
+            if (string.Equals(extension, ".lua", StringComparison.OrdinalIgnoreCase))
+            {
+                LuaFileInfo luaInfo = LuaFile.Identify(data);
+                if (luaInfo.Type == LuaFileType.LuaCompiled)
+                {
+                    if (TryDecompileLua(data, out string luaText, out string? luaError))
+                    {
+                        ClearImagePreview();
+                        HasImagePreview = false;
+                        HasTextPreview = true;
+                        TextPreviewContent = luaText;
+                        string version = luaInfo.GetVersionString() ?? "?";
+                        PreviewDetails = $"Compiled Lua {version} (decompiled) • {FormatSize(entry.Length)}";
+                        PreviewStatus = $"Lua preview • {CountLines(luaText)} line(s)";
+                        return;
+                    }
+
+                    ResetPreview($"Lua decompilation failed: {luaError}");
+                    return;
+                }
+            }
+
             if (!TryDecodeTextPreview(data, out string text, out string encodingName, out string? error))
             {
                 ResetPreview($"Text preview unavailable: {error}");
@@ -1070,12 +1213,231 @@ public sealed class IIPSArchiveFileExplorerViewModel : ViewModelBase, IDisposabl
         }
     }
 
+    private void UpdateCsvPreview(IIPSArchiveTreeNodeViewModel node)
+    {
+        IIPSArchiveEntry? entry = node.Entry;
+        if (entry == null)
+        {
+            ResetPreview("Preview unavailable.");
+            return;
+        }
+
+        if (entry.Length > MaxTextPreviewBytes)
+        {
+            ResetPreview($"Preview skipped for files larger than {FormatSize(MaxTextPreviewBytes)}.");
+            return;
+        }
+
+        try
+        {
+            byte[] data = entry.ReadAllBytes();
+            if (!TryDecodeTextPreview(data, out string text, out _, out string? decodeError))
+            {
+                ResetPreview($"CSV preview unavailable: {decodeError}");
+                return;
+            }
+
+            char separator = text.Contains('\t') ? '\t' : ',';
+            string[] lines = text.Split('\n');
+            List<string> nonEmptyLines = [];
+            foreach (string line in lines)
+            {
+                string trimmed = line.TrimEnd('\r');
+                if (trimmed.Length > 0)
+                {
+                    nonEmptyLines.Add(trimmed);
+                }
+            }
+
+            if (nonEmptyLines.Count == 0)
+            {
+                ResetPreview("CSV file is empty.");
+                return;
+            }
+
+            string[] headers = nonEmptyLines[0].Split(separator);
+            List<string[]> rows = new(nonEmptyLines.Count - 1);
+            for (int i = 1; i < nonEmptyLines.Count; i++)
+            {
+                rows.Add(nonEmptyLines[i].Split(separator));
+            }
+
+            ClearImagePreview();
+            HasImagePreview = false;
+            HasTextPreview = false;
+            HasTablePreview = true;
+            TablePreviewHeaders = headers;
+            TablePreviewRows = rows;
+            PreviewDetails = $"{headers.Length} col(s) • {rows.Count} row(s) • {FormatSize(entry.Length)}";
+            PreviewStatus = $"CSV preview • {headers.Length} column(s), {rows.Count} row(s)";
+        }
+        catch (Exception ex)
+        {
+            ResetPreview($"CSV preview unavailable: {ex.Message}");
+        }
+    }
+
+    private void UpdateDatPreview(IIPSArchiveTreeNodeViewModel node)
+    {
+        IIPSArchiveEntry? entry = node.Entry;
+        if (entry == null)
+        {
+            ResetPreview("Preview unavailable.");
+            return;
+        }
+
+        try
+        {
+            byte[] data = entry.ReadAllBytes();
+            if (!DatFile.IsDatFile(data))
+            {
+                ShowHexPreview(data, entry.Length);
+                return;
+            }
+
+            DatFile dat = new DatFile();
+            dat.Open(data);
+
+            if (dat.ContentType != DatFile.DatContentType.TSV || dat.Sheets.Count == 0)
+            {
+                ShowHexPreview(data, entry.Length);
+                return;
+            }
+
+            List<DatSheetViewModel> sheets = new(dat.Sheets.Count);
+            int totalRows = 0;
+            foreach (TsvSheet sheet in dat.Sheets)
+            {
+                string[] headers = sheet.TableHead ?? Array.Empty<string>();
+                List<string[]> rows = [];
+                if (sheet.Table != null)
+                {
+                    foreach (string[] row in sheet.Table)
+                    {
+                        rows.Add(row);
+                    }
+                }
+
+                totalRows += rows.Count;
+                sheets.Add(new DatSheetViewModel
+                {
+                    Name = sheet.Name ?? $"Sheet {sheets.Count + 1}",
+                    Headers = headers,
+                    Rows = rows,
+                });
+            }
+
+            ClearImagePreview();
+            HasImagePreview = false;
+            HasTextPreview = false;
+            HasTablePreview = false;
+            HasDatPreview = true;
+            DatPreviewSheets = sheets;
+            DatSelectedSheetIndex = 0;
+            PreviewDetails = $"{sheets.Count} sheet(s) • {totalRows} row(s) • {FormatSize(entry.Length)}";
+            PreviewStatus = $"DAT preview • {sheets.Count} sheet(s)";
+        }
+        catch (Exception ex)
+        {
+            ResetPreview($"DAT preview unavailable: {ex.Message}");
+        }
+    }
+
+    private const int MaxHexPreviewBytes = 4096;
+
+    private void UpdateHexPreview(IIPSArchiveTreeNodeViewModel node)
+    {
+        IIPSArchiveEntry? entry = node.Entry;
+        if (entry == null)
+        {
+            ResetPreview("Preview unavailable.");
+            return;
+        }
+
+        try
+        {
+            byte[] data = entry.ReadAllBytes();
+            _currentPreviewData = data;
+            _currentPreviewLength = entry.Length;
+            if (!IsHexMode)
+            {
+                IsHexMode = true;
+                IsHexFallback = true;
+                OnPropertyChanged(nameof(CanToggleHex));
+            }
+            ShowHexPreview(data, entry.Length);
+        }
+        catch (Exception ex)
+        {
+            ResetPreview($"Hex preview unavailable: {ex.Message}");
+        }
+    }
+
+    private void ShowHexPreview(byte[] data, long totalLength)
+    {
+        int limit = (int)Math.Min(data.Length, MaxHexPreviewBytes);
+        string hex = FormatHexDump(data, limit);
+        bool truncated = data.Length > MaxHexPreviewBytes;
+
+        ClearImagePreview();
+        HasImagePreview = false;
+        HasTextPreview = true;
+        HasTablePreview = false;
+        HasDatPreview = false;
+        DatPreviewSheets = [];
+        TextPreviewContent = hex;
+        PreviewDetails = $"Hex • {FormatSize(totalLength)}{(truncated ? $" (first {FormatSize(MaxHexPreviewBytes)})" : "")}";
+        PreviewStatus = $"Hex preview • {FormatSize(totalLength)}";
+    }
+
+    private static string FormatHexDump(byte[] data, int length)
+    {
+        StringBuilder sb = new(length * 5);
+        for (int offset = 0; offset < length; offset += 16)
+        {
+            sb.Append(offset.ToString("X8"));
+            sb.Append("  ");
+
+            int rowEnd = Math.Min(offset + 16, length);
+            for (int i = offset; i < offset + 16; i++)
+            {
+                if (i == offset + 8) sb.Append(' ');
+                if (i < rowEnd)
+                {
+                    sb.Append(data[i].ToString("X2"));
+                    sb.Append(' ');
+                }
+                else
+                {
+                    sb.Append("   ");
+                }
+            }
+
+            sb.Append(" |");
+            for (int i = offset; i < rowEnd; i++)
+            {
+                byte b = data[i];
+                sb.Append(b is >= 0x20 and <= 0x7E ? (char)b : '.');
+            }
+            sb.Append('|');
+            sb.Append('\n');
+        }
+
+        return sb.ToString();
+    }
+
     private void ResetPreview(string status)
     {
         ClearImagePreview();
         HasImagePreview = false;
         HasTextPreview = false;
+        HasTablePreview = false;
+        HasDatPreview = false;
+        DatPreviewSheets = [];
+        TablePreviewHeaders = Array.Empty<string>();
+        TablePreviewRows = [];
         TextPreviewContent = string.Empty;
+        _currentPreviewData = null;
         PreviewStatus = status;
         PreviewDetails = "-";
     }
@@ -1159,6 +1521,63 @@ public sealed class IIPSArchiveFileExplorerViewModel : ViewModelBase, IDisposabl
         };
     }
 
+    private static string DescribeLuaFormat(IIPSArchiveEntry entry)
+    {
+        string extension = Path.GetExtension(entry.ArchivePath ?? string.Empty);
+        if (!string.Equals(extension, ".lua", StringComparison.OrdinalIgnoreCase))
+        {
+            return "-";
+        }
+
+        try
+        {
+            byte[] data = entry.ReadAllBytes();
+            LuaFileInfo info = LuaFile.Identify(data);
+            return info.Type switch
+            {
+                LuaFileType.LuaSource => "Source",
+                LuaFileType.LuaCompiled => $"Compiled (Lua {info.GetVersionString() ?? "?"})",
+                _ => "Unknown",
+            };
+        }
+        catch (Exception ex)
+        {
+            return $"Inspection failed: {ex.Message}";
+        }
+    }
+
+    private static bool TryDecompileLua(byte[] data, out string text, out string? error)
+    {
+        try
+        {
+            LuaByteBuffer buffer = new LuaByteBuffer(data);
+            buffer.Order(LuaByteBuffer.LITTLE_ENDIAN);
+            buffer.Position(0);
+            Configuration config = new Configuration();
+            BHeader header = new BHeader(buffer, config);
+            LFunction lmain = header.main;
+
+            Decompiler d = new Decompiler(lmain);
+            Decompiler.State result = d.Decompile();
+
+            using MemoryStream ms = new MemoryStream();
+            Output output = new Output(new FileOutputProvider(ms));
+            d.Print(result, output);
+            output.Finish();
+
+            ms.Position = 0;
+            text = Encoding.UTF8.GetString(ms.ToArray()).Replace("\r\n", "\n").Replace('\r', '\n');
+            error = null;
+            return true;
+        }
+        catch (Exception ex)
+        {
+            text = string.Empty;
+            error = ex.Message;
+            return false;
+        }
+    }
+
     private static IEnumerable<(Encoding Encoding, string Name, int BomLength)> GetTextEncodingCandidates(byte[] data)
     {
         if (HasPrefix(data, 0xEF, 0xBB, 0xBF))
@@ -1202,6 +1621,8 @@ public sealed class IIPSArchiveFileExplorerViewModel : ViewModelBase, IDisposabl
         {
             yield return (Utf16BeStrict, "UTF-16 BE", 0);
         }
+
+        yield return (GbkEncoding, "GBK", 0);
     }
 
     private static bool HasPrefix(byte[] data, params byte[] prefix)

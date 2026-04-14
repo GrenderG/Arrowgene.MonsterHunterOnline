@@ -51,6 +51,51 @@ public class DatFile
         return encryptor.TransformFinalBlock(data, 0, data.Length);
     }
 
+    public static bool IsDatFile(byte[] data)
+    {
+        if (data.Length < 4)
+        {
+            return false;
+        }
+
+        uint firstUint = (uint)(data[0] | data[1] << 8 | data[2] << 16 | data[3] << 24);
+        return firstUint == DatHeaderLength || firstUint == 0x56535423;
+    }
+
+    public void Open(byte[] data)
+    {
+        Sheets.Clear();
+
+        StreamBuffer b = new StreamBuffer(data);
+        b.SetPositionStart();
+        HeaderLength = b.ReadUInt32();
+        if (DatHeaderLength != HeaderLength)
+        {
+            if (HeaderLength == 0x56535423)
+            {
+                byte[] tsvBytes = b.GetAllBytes();
+                ReadTsv(tsvBytes);
+                return;
+            }
+
+            Logger.Info($"header length miss match");
+        }
+
+        Magic = b.ReadUInt32();
+        if (DatMagic != Magic)
+        {
+            Logger.Info($"MAGIC miss match");
+        }
+
+        ChunkCount = b.ReadUInt32();
+        uint unk = b.ReadUInt32();
+
+        byte[] cipher = b.ReadBytes(b.Size - b.Position);
+        byte[] plain = DecryptDat(cipher);
+
+        ReadTsv(plain);
+    }
+
     public void Open(string path)
     {
         Sheets.Clear();

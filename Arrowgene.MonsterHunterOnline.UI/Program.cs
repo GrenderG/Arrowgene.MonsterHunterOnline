@@ -1,5 +1,6 @@
 ﻿using Avalonia;
 using System;
+using System.Text;
 using Arrowgene.MonsterHunterOnline.UI.Infrastructure;
 
 namespace Arrowgene.MonsterHunterOnline.UI;
@@ -12,6 +13,7 @@ sealed class Program
     [STAThread]
     public static void Main(string[] args)
     {
+        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
         GlobalExceptionHandler.Register();
 
         try

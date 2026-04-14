@@ -12,6 +12,16 @@
     </Design.DataContext>
 
     <UserControl.Resources>
+        <!-- Colors -->
+        <SolidColorBrush x:Key="FgPrimary" Color="#0F172A" />
+        <SolidColorBrush x:Key="FgSecondary" Color="#334155" />
+        <SolidColorBrush x:Key="FgMuted" Color="#667085" />
+        <SolidColorBrush x:Key="FgOnDark" Color="#F9FAFB" />
+        <SolidColorBrush x:Key="BgSurface" Color="#FFFFFF" />
+        <SolidColorBrush x:Key="BgSurfaceHover" Color="#F8F7F4" />
+        <SolidColorBrush x:Key="BorderDefault" Color="#D7D3CC" />
+
+        <!-- Icons -->
         <StreamGeometry x:Key="SaveIcon">M3,3 H13 V13 H3 Z M5,3 V6 H11 V3 M5,9 H11 V11 H5 Z</StreamGeometry>
         <StreamGeometry x:Key="AddIcon">M4,2 H10 L13,5 V14 H4 Z M10,2 V5 H13 M8,7 V11 M6,9 H10</StreamGeometry>
         <StreamGeometry x:Key="EditIcon">M4,11 L4,13 L6,13 L12,7 L10,5 Z M9,6 L11,8</StreamGeometry>
@@ -19,6 +29,8 @@
         <StreamGeometry x:Key="FolderClosedIcon">M1.5,4.5 H6 L7.5,6 H14.5 V13.5 H1.5 Z</StreamGeometry>
         <StreamGeometry x:Key="FolderOpenIcon">M1.5,5 H6.5 L8,6.5 H14.5 L13.5,13.5 H2.5 Z</StreamGeometry>
         <StreamGeometry x:Key="FileIcon">M4,1.5 H9.5 L13,5 V14.5 H4 Z M9.5,1.5 V5 H13</StreamGeometry>
+        <StreamGeometry x:Key="HashIcon">M5.5,2 L4.5,6 H2 V7.5 H4.2 L3.4,10.5 H2 V12 H3.1 L2.5,14 H4 L4.6,12 H7.1 L6.5,14 H8 L8.6,12 H11 V10.5 H8.9 L9.7,7.5 H11 V6 H10 L11,2 H9.5 L8.5,6 H6 L7,2 Z M5.7,7.5 H8.2 L7.4,10.5 H4.9 Z</StreamGeometry>
+        <StreamGeometry x:Key="HexIcon">M2,4 H6 V8 H2 Z M2,9 H6 V13 H2 Z M8,4 H14 V6 H8 Z M8,7 H12 V8 H8 Z M8,9 H14 V11 H8 Z M8,12 H12 V13 H8 Z</StreamGeometry>
     </UserControl.Resources>
 
     <UserControl.Styles>
@@ -38,7 +50,7 @@
 
         <Style Selector="TextBlock.caption">
             <Setter Property="FontSize" Value="11" />
-            <Setter Property="Foreground" Value="#667085" />
+            <Setter Property="Foreground" Value="{StaticResource FgMuted}" />
         </Style>
 
         <Style Selector="Button.toolbar-text">
@@ -49,9 +61,27 @@
         <Style Selector="TextBox.filter-box">
             <Setter Property="MinHeight" Value="34" />
             <Setter Property="Padding" Value="10,7" />
-            <Setter Property="Background" Value="#FFFFFF" />
-            <Setter Property="BorderBrush" Value="#D7D3CC" />
+            <Setter Property="Background" Value="{StaticResource BgSurface}" />
+            <Setter Property="Foreground" Value="{StaticResource FgPrimary}" />
+            <Setter Property="BorderBrush" Value="{StaticResource BorderDefault}" />
             <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CaretBrush" Value="{StaticResource FgPrimary}" />
+        </Style>
+
+        <Style Selector="TextBox.filter-box /template/ Border#PART_BorderElement">
+            <Setter Property="Background" Value="{StaticResource BgSurface}" />
+        </Style>
+
+        <Style Selector="TextBox.filter-box:pointerover /template/ Border#PART_BorderElement">
+            <Setter Property="Background" Value="{StaticResource BgSurfaceHover}" />
+        </Style>
+
+        <Style Selector="TextBox.filter-box:focus /template/ Border#PART_BorderElement">
+            <Setter Property="Background" Value="{StaticResource BgSurfaceHover}" />
+        </Style>
+
+        <Style Selector="TextBox.filter-box:focus-within /template/ Border#PART_BorderElement">
+            <Setter Property="Background" Value="{StaticResource BgSurfaceHover}" />
         </Style>
 
         <Style Selector="Button.toolbar-icon">
@@ -76,6 +106,80 @@
         <Style Selector="ListBox.archive-file-list">
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderThickness" Value="0" />
+        </Style>
+
+        <Style Selector="DataGrid.preview-grid">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="RowBackground" Value="{StaticResource BgSurface}" />
+            <Setter Property="Foreground" Value="{StaticResource FgSecondary}" />
+        </Style>
+
+        <Style Selector="DataGrid.preview-grid DataGridColumnHeader">
+            <Setter Property="Background" Value="#ECE9E2" />
+            <Setter Property="Foreground" Value="{StaticResource FgSecondary}" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="MinHeight" Value="26" />
+            <Setter Property="Padding" Value="6,3" />
+        </Style>
+
+        <Style Selector="DataGrid.preview-grid DataGridColumnHeader:pointerover">
+            <Setter Property="Background" Value="#E2DFD8" />
+            <Setter Property="Foreground" Value="{StaticResource FgSecondary}" />
+        </Style>
+
+        <Style Selector="DataGrid.preview-grid DataGridColumnHeader:pointerover /template/ ContentPresenter">
+            <Setter Property="Foreground" Value="{StaticResource FgSecondary}" />
+        </Style>
+
+        <Style Selector="DataGrid.preview-grid DataGridColumnHeader:pressed">
+            <Setter Property="Background" Value="{StaticResource BorderDefault}" />
+            <Setter Property="Foreground" Value="{StaticResource FgSecondary}" />
+        </Style>
+
+        <Style Selector="DataGrid.preview-grid DataGridColumnHeader:pressed /template/ ContentPresenter">
+            <Setter Property="Foreground" Value="{StaticResource FgSecondary}" />
+        </Style>
+
+        <Style Selector="DataGrid.preview-grid DataGridRow">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="MinHeight" Value="22" />
+        </Style>
+
+        <Style Selector="DataGrid.preview-grid DataGridCell">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Padding" Value="6,2" />
+        </Style>
+
+        <Style Selector="TabControl.preview-tabs">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Padding" Value="0" />
+        </Style>
+
+        <Style Selector="TabControl.preview-tabs TabItem">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Padding" Value="8,3" />
+            <Setter Property="MinHeight" Value="24" />
+            <Setter Property="Foreground" Value="{StaticResource FgSecondary}" />
+        </Style>
+
+        <Style Selector="TabControl.preview-tabs TabItem:pointerover">
+            <Setter Property="Foreground" Value="{StaticResource FgPrimary}" />
+        </Style>
+
+        <Style Selector="TabControl.preview-tabs TabItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Foreground" Value="{StaticResource FgPrimary}" />
+        </Style>
+
+        <Style Selector="TabControl.preview-tabs TabItem:selected">
+            <Setter Property="Foreground" Value="{StaticResource FgPrimary}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+
+        <Style Selector="TabControl.preview-tabs TabItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Foreground" Value="{StaticResource FgPrimary}" />
         </Style>
     </UserControl.Styles>
 
@@ -176,6 +280,16 @@
                     Padding="16,8">
                 <StackPanel Orientation="Horizontal" Spacing="8">
                     <Border Classes="pill">
+                        <TextBlock Text="{Binding FormatVersionText, StringFormat=Version {0}}"
+                                   FontWeight="SemiBold"
+                                   Foreground="#334155" />
+                    </Border>
+                    <Border Classes="pill">
+                        <TextBlock Text="{Binding SectorSizeText, StringFormat=Sector {0}}"
+                                   FontWeight="SemiBold"
+                                   Foreground="#334155" />
+                    </Border>
+                    <Border Classes="pill">
                         <TextBlock Text="{Binding EntryCount, StringFormat=Entries {0}}"
                                    FontWeight="SemiBold"
                                    Foreground="#334155" />
@@ -203,14 +317,36 @@
                     BorderBrush="#D7D3CC"
                     BorderThickness="0,1,0,0"
                     Padding="12,8">
-                <TextBlock Text="{Binding StatusText}"
-                           MaxLines="1"
-                           TextTrimming="CharacterEllipsis"
-                           Foreground="#334155"
-                           ToolTip.Tip="{Binding StatusText}" />
+                <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock Text="{Binding StatusText}"
+                               MaxLines="1"
+                               TextTrimming="CharacterEllipsis"
+                               Foreground="#334155"
+                               ToolTip.Tip="{Binding StatusText}" />
+                    <Border Grid.Column="1"
+                            Cursor="Hand"
+                            Padding="4,0"
+                            IsVisible="{Binding HasArchive}">
+                        <ToolTip.Tip>
+                            <ToolTip Background="{StaticResource BgSurface}"
+                                     BorderBrush="{StaticResource BorderDefault}"
+                                     BorderThickness="1"
+                                     Padding="10,8">
+                                <TextBlock Text="{Binding HashSummaryTooltip}"
+                                           Foreground="{StaticResource FgPrimary}"
+                                           FontSize="11"
+                                           FontFamily="Cascadia Mono, Consolas, Menlo, monospace" />
+                            </ToolTip>
+                        </ToolTip.Tip>
+                        <PathIcon Width="13"
+                                  Height="13"
+                                  Foreground="{StaticResource FgMuted}"
+                                  Data="{StaticResource HashIcon}" />
+                    </Border>
+                </Grid>
             </Border>
 
-            <Grid ColumnDefinitions="1.9*,6,1.15*"
+            <Grid ColumnDefinitions="1.6*,6,1.4*"
                   MinHeight="0">
                 <Border Grid.Column="0"
                         Classes="pane"
@@ -370,254 +506,163 @@
                                        ToolTip.Tip="{Binding SelectedPath}" />
                         </StackPanel>
 
-                        <ScrollViewer Grid.Row="1"
-                                      VerticalScrollBarVisibility="Auto"
-                                      HorizontalScrollBarVisibility="Disabled"
+                        <Grid Grid.Row="1"
+                              RowDefinitions="Auto,*"
+                              RowSpacing="8"
+                              MinHeight="0">
+
+                            <!-- File info - compact, above preview -->
+                            <Border Background="#FFFFFF"
+                                    BorderBrush="#D7D3CC"
+                                    BorderThickness="1"
+                                    CornerRadius="8"
+                                    Padding="10,6">
+                                <Grid ColumnDefinitions="50,*"
+                                      RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto"
+                                      ColumnSpacing="8"
+                                      RowSpacing="3">
+                                    <TextBlock Text="Type"
+                                               FontSize="11" FontWeight="SemiBold" Foreground="#667085" />
+                                    <TextBlock Grid.Column="1" FontSize="11" Foreground="#0F172A"
+                                               Text="{Binding SelectedType}" />
+
+                                    <TextBlock Grid.Row="1" Text="Size"
+                                               FontSize="11" FontWeight="SemiBold" Foreground="#667085" />
+                                    <TextBlock Grid.Row="1" Grid.Column="1" FontSize="11" Foreground="#0F172A"
+                                               Text="{Binding SelectedLength}" />
+
+                                    <TextBlock Grid.Row="2" Text="Stored"
+                                               FontSize="11" FontWeight="SemiBold" Foreground="#667085" />
+                                    <TextBlock Grid.Row="2" Grid.Column="1" FontSize="11" Foreground="#0F172A"
+                                               Text="{Binding SelectedStoredLength}" />
+
+                                    <TextBlock Grid.Row="3" Text="Flags"
+                                               FontSize="11" FontWeight="SemiBold" Foreground="#667085" />
+                                    <SelectableTextBlock Grid.Row="3" Grid.Column="1" FontSize="11" Foreground="#0F172A"
+                                                         Text="{Binding SelectedFlags}"
+                                                         TextTrimming="CharacterEllipsis"
+                                                         ToolTip.Tip="{Binding SelectedFlags}" />
+
+                                    <TextBlock Grid.Row="4" Text="Index"
+                                               FontSize="11" FontWeight="SemiBold" Foreground="#667085" />
+                                    <TextBlock Grid.Row="4" Grid.Column="1" FontSize="11" Foreground="#0F172A"
+                                               Text="{Binding SelectedIndex}" />
+
+                                    <TextBlock Grid.Row="5" Text="MD5"
+                                               FontSize="11" FontWeight="SemiBold" Foreground="#667085" />
+                                    <SelectableTextBlock Grid.Row="5" Grid.Column="1" FontSize="11" Foreground="#0F172A"
+                                                         Text="{Binding SelectedHash}"
+                                                         TextTrimming="CharacterEllipsis"
+                                                         ToolTip.Tip="{Binding SelectedHash}" />
+                                </Grid>
+                            </Border>
+
+                            <!-- Preview -->
+                            <Border Grid.Row="1"
+                                    Background="#FFFFFF"
+                                    BorderBrush="#D7D3CC"
+                                    BorderThickness="1"
+                                    CornerRadius="10"
+                                    Padding="10"
+                                    MinHeight="0">
+                                <Grid RowDefinitions="Auto,*,Auto"
+                                      RowSpacing="6"
                                       MinHeight="0">
-                            <StackPanel Spacing="12">
-                                <Border Background="#FFFFFF"
-                                        BorderBrush="#D7D3CC"
-                                        BorderThickness="1"
-                                        CornerRadius="10"
-                                        Padding="12">
-                                    <StackPanel Spacing="8">
-                                        <Grid ColumnDefinitions="*,Auto"
-                                              ColumnSpacing="8">
-                                            <TextBlock Text="Preview"
-                                                       FontSize="13"
-                                                       FontWeight="SemiBold"
-                                                       Foreground="#0F172A" />
-                                            <TextBlock Grid.Column="1"
-                                                       Text="{Binding PreviewDetails}"
-                                                       Classes="caption"
-                                                       VerticalAlignment="Center" />
-                                        </Grid>
-
-                                        <Border Background="#EEF2F6"
-                                                BorderBrush="#D7D3CC"
-                                                BorderThickness="1"
-                                                CornerRadius="8"
-                                                Padding="8"
-                                                MinHeight="180"
-                                                MaxHeight="260">
-                                            <Grid>
-                                                <Image Source="{Binding PreviewBitmap}"
-                                                       IsVisible="{Binding HasImagePreview}"
-                                                       Stretch="Uniform"
-                                                       HorizontalAlignment="Stretch"
-                                                       VerticalAlignment="Stretch" />
-
-                                                <ScrollViewer IsVisible="{Binding HasTextPreview}"
-                                                              HorizontalScrollBarVisibility="Auto"
-                                                              VerticalScrollBarVisibility="Auto">
-                                                    <SelectableTextBlock Text="{Binding TextPreviewContent}"
-                                                                         Foreground="#0F172A"
-                                                                         TextWrapping="NoWrap"
-                                                                         FontSize="12" />
-                                                </ScrollViewer>
-                                            </Grid>
-                                        </Border>
-
-                                        <TextBlock Text="{Binding PreviewStatus}"
+                                    <Grid ColumnDefinitions="*,Auto,Auto"
+                                          ColumnSpacing="6">
+                                        <TextBlock Text="Preview"
+                                                   FontSize="12"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{StaticResource FgPrimary}" />
+                                        <TextBlock Grid.Column="1"
+                                                   Text="{Binding PreviewDetails}"
                                                    Classes="caption"
-                                                   TextWrapping="Wrap" />
-                                    </StackPanel>
-                                </Border>
-
-                                <Border Background="#FFFFFF"
-                                        BorderBrush="#D7D3CC"
-                                        BorderThickness="1"
-                                        CornerRadius="10"
-                                        Padding="12">
-                                    <Grid ColumnDefinitions="88,*"
-                                          RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto"
-                                          ColumnSpacing="12"
-                                          RowSpacing="8">
-                                        <TextBlock Text="Name"
-                                                   FontWeight="SemiBold"
-                                                   Foreground="#0F172A" />
-                                        <SelectableTextBlock Grid.Column="1"
-                                                             Foreground="#0F172A"
-                                                             Text="{Binding SelectedName}"
-                                                             TextWrapping="Wrap" />
-
-                                        <TextBlock Grid.Row="1"
-                                                   Text="Path"
-                                                   FontWeight="SemiBold"
-                                                   Foreground="#0F172A" />
-                                        <SelectableTextBlock Grid.Row="1"
-                                                             Grid.Column="1"
-                                                             Foreground="#0F172A"
-                                                             Text="{Binding SelectedPath}"
-                                                             TextWrapping="Wrap" />
-
-                                        <TextBlock Grid.Row="2"
-                                                   Text="Type"
-                                                   FontWeight="SemiBold"
-                                                   Foreground="#0F172A" />
-                                        <TextBlock Grid.Row="2"
-                                                   Grid.Column="1"
-                                                   Foreground="#0F172A"
-                                                   Text="{Binding SelectedType}"
-                                                   TextWrapping="Wrap" />
-
-                                        <TextBlock Grid.Row="3"
-                                                   Text="Size"
-                                                   FontWeight="SemiBold"
-                                                   Foreground="#0F172A" />
-                                        <TextBlock Grid.Row="3"
-                                                   Grid.Column="1"
-                                                   Foreground="#0F172A"
-                                                   Text="{Binding SelectedLength}"
-                                                   TextWrapping="Wrap" />
-
-                                        <TextBlock Grid.Row="4"
-                                                   Text="Stored"
-                                                   FontWeight="SemiBold"
-                                                   Foreground="#0F172A" />
-                                        <TextBlock Grid.Row="4"
-                                                   Grid.Column="1"
-                                                   Foreground="#0F172A"
-                                                   Text="{Binding SelectedStoredLength}"
-                                                   TextWrapping="Wrap" />
-
-                                        <TextBlock Grid.Row="5"
-                                                   Text="Flags"
-                                                   FontWeight="SemiBold"
-                                                   Foreground="#0F172A" />
-                                        <SelectableTextBlock Grid.Row="5"
-                                                             Grid.Column="1"
-                                                             Foreground="#0F172A"
-                                                             Text="{Binding SelectedFlags}"
-                                                             TextWrapping="Wrap" />
-
-                                        <TextBlock Grid.Row="6"
-                                                   Text="XML"
-                                                   FontWeight="SemiBold"
-                                                   Foreground="#0F172A" />
-                                        <TextBlock Grid.Row="6"
-                                                   Grid.Column="1"
-                                                   Foreground="#0F172A"
-                                                   Text="{Binding SelectedXmlFormat}"
-                                                   TextWrapping="Wrap" />
-
-                                        <TextBlock Grid.Row="7"
-                                                   Text="MD5 / Id"
-                                                   FontWeight="SemiBold"
-                                                   Foreground="#0F172A" />
-                                        <StackPanel Grid.Row="7"
-                                                    Grid.Column="1"
-                                                    Spacing="4">
-                                            <SelectableTextBlock Foreground="#0F172A"
-                                                                 Text="{Binding SelectedHash}"
-                                                                 TextWrapping="Wrap" />
-                                            <TextBlock Text="{Binding SelectedIndex}"
-                                                       Classes="caption" />
-                                        </StackPanel>
+                                                   VerticalAlignment="Center" />
+                                        <ToggleButton Grid.Column="2"
+                                                      IsChecked="{Binding IsHexMode}"
+                                                      Click="ToggleHexModeClick"
+                                                      IsEnabled="{Binding CanToggleHex}"
+                                                      ToolTip.Tip="Toggle hex view"
+                                                      Padding="4"
+                                                      MinWidth="0"
+                                                      MinHeight="0"
+                                                      Width="24" Height="24"
+                                                      VerticalAlignment="Center">
+                                            <PathIcon Width="12" Height="12"
+                                                      Data="{StaticResource HexIcon}"
+                                                      Foreground="{StaticResource FgMuted}" />
+                                        </ToggleButton>
                                     </Grid>
-                                </Border>
 
-                                <Border Background="#FFFFFF"
-                                        BorderBrush="#D7D3CC"
-                                        BorderThickness="1"
-                                        CornerRadius="10"
-                                        Padding="12">
-                                    <StackPanel Spacing="10">
-                                        <TextBlock Text="Archive"
-                                                   FontSize="13"
-                                                   FontWeight="SemiBold"
-                                                   Foreground="#0F172A" />
-                                        <Grid ColumnDefinitions="88,*"
-                                              RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto"
-                                              ColumnSpacing="12"
-                                              RowSpacing="8">
-                                            <TextBlock Text="Source"
-                                                       FontWeight="SemiBold"
-                                                       Foreground="#0F172A" />
-                                            <SelectableTextBlock Grid.Column="1"
-                                                                 Foreground="#0F172A"
-                                                                 Text="{Binding ArchiveFilePath}"
-                                                                 TextWrapping="Wrap" />
+                                    <Border Grid.Row="1"
+                                            Background="#FFFFFF"
+                                            BorderBrush="#D7D3CC"
+                                            BorderThickness="1"
+                                            CornerRadius="8"
+                                            Padding="6"
+                                            MinHeight="0">
+                                        <Grid>
+                                            <Image Source="{Binding PreviewBitmap}"
+                                                   IsVisible="{Binding HasImagePreview}"
+                                                   Stretch="Uniform"
+                                                   HorizontalAlignment="Stretch"
+                                                   VerticalAlignment="Stretch" />
 
-                                            <TextBlock Grid.Row="1"
-                                                       Text="Format"
-                                                       FontWeight="SemiBold"
-                                                       Foreground="#0F172A" />
-                                            <TextBlock Grid.Row="1"
-                                                       Grid.Column="1"
-                                                       Foreground="#0F172A"
-                                                       Text="{Binding FormatVersionText}" />
+                                            <ScrollViewer IsVisible="{Binding HasTextPreview}"
+                                                          HorizontalScrollBarVisibility="Auto"
+                                                          VerticalScrollBarVisibility="Auto">
+                                                <SelectableTextBlock Text="{Binding TextPreviewContent}"
+                                                                     Foreground="#334155"
+                                                                     TextWrapping="NoWrap"
+                                                                     FontSize="11"
+                                                                     FontFamily="Cascadia Mono, Consolas, Menlo, monospace" />
+                                            </ScrollViewer>
 
-                                            <TextBlock Grid.Row="2"
-                                                       Text="Sector"
-                                                       FontWeight="SemiBold"
-                                                       Foreground="#0F172A" />
-                                            <TextBlock Grid.Row="2"
-                                                       Grid.Column="1"
-                                                       Foreground="#0F172A"
-                                                       Text="{Binding SectorSizeText}" />
+                                            <DataGrid x:Name="CsvPreviewDataGrid"
+                                                      Classes="preview-grid"
+                                                      IsVisible="{Binding HasTablePreview}"
+                                                      IsReadOnly="True"
+                                                      AutoGenerateColumns="False"
+                                                      CanUserReorderColumns="False"
+                                                      CanUserResizeColumns="True"
+                                                      CanUserSortColumns="False"
+                                                      HeadersVisibility="Column"
+                                                      GridLinesVisibility="All" />
 
-                                            <TextBlock Grid.Row="3"
-                                                       Text="Entries"
-                                                       FontWeight="SemiBold"
-                                                       Foreground="#0F172A" />
-                                            <TextBlock Grid.Row="3"
-                                                       Grid.Column="1"
-                                                       Foreground="#0F172A"
-                                                       Text="{Binding EntryCount}" />
-
-                                            <TextBlock Grid.Row="4"
-                                                       Text="Named"
-                                                       FontWeight="SemiBold"
-                                                       Foreground="#0F172A" />
-                                            <TextBlock Grid.Row="4"
-                                                       Grid.Column="1"
-                                                       Foreground="#0F172A"
-                                                       Text="{Binding NamedEntryCount}" />
-
-                                            <TextBlock Grid.Row="5"
-                                                       Text="Unnamed"
-                                                       FontWeight="SemiBold"
-                                                       Foreground="#0F172A" />
-                                            <TextBlock Grid.Row="5"
-                                                       Grid.Column="1"
-                                                       Foreground="#0F172A"
-                                                       Text="{Binding UnnamedEntryCount}" />
-
-                                            <TextBlock Grid.Row="6"
-                                                       Text="Header"
-                                                       FontWeight="SemiBold"
-                                                       Foreground="#0F172A" />
-                                            <SelectableTextBlock Grid.Row="6"
-                                                                 Grid.Column="1"
-                                                                 Foreground="#0F172A"
-                                                                 Text="{Binding HeaderHashText}"
-                                                                 TextWrapping="Wrap" />
-
-                                            <TextBlock Grid.Row="7"
-                                                       Text="BET"
-                                                       FontWeight="SemiBold"
-                                                       Foreground="#0F172A" />
-                                            <SelectableTextBlock Grid.Row="7"
-                                                                 Grid.Column="1"
-                                                                 Foreground="#0F172A"
-                                                                 Text="{Binding BetHashText}"
-                                                                 TextWrapping="Wrap" />
-
-                                            <TextBlock Grid.Row="8"
-                                                       Text="HET"
-                                                       FontWeight="SemiBold"
-                                                       Foreground="#0F172A" />
-                                            <SelectableTextBlock Grid.Row="8"
-                                                                 Grid.Column="1"
-                                                                 Foreground="#0F172A"
-                                                                 Text="{Binding HetHashText}"
-                                                                 TextWrapping="Wrap" />
+                                            <TabControl x:Name="DatPreviewTabControl"
+                                                        Classes="preview-tabs"
+                                                        IsVisible="{Binding HasDatPreview}"
+                                                        ItemsSource="{Binding DatPreviewSheets}"
+                                                        SelectedIndex="{Binding DatSelectedSheetIndex, Mode=TwoWay}">
+                                                <TabControl.ItemTemplate>
+                                                    <DataTemplate x:DataType="local:DatSheetViewModel">
+                                                        <TextBlock Text="{Binding Name}" />
+                                                    </DataTemplate>
+                                                </TabControl.ItemTemplate>
+                                                <TabControl.ContentTemplate>
+                                                    <DataTemplate x:DataType="local:DatSheetViewModel">
+                                                        <DataGrid x:Name="DatSheetDataGrid"
+                                                                  Classes="preview-grid"
+                                                                  IsReadOnly="True"
+                                                                  AutoGenerateColumns="False"
+                                                                  CanUserReorderColumns="False"
+                                                                  CanUserResizeColumns="True"
+                                                                  CanUserSortColumns="False"
+                                                                  HeadersVisibility="Column"
+                                                                  GridLinesVisibility="All" />
+                                                    </DataTemplate>
+                                                </TabControl.ContentTemplate>
+                                            </TabControl>
                                         </Grid>
-                                    </StackPanel>
-                                </Border>
-                            </StackPanel>
-                        </ScrollViewer>
+                                    </Border>
+
+                                    <TextBlock Grid.Row="2"
+                                               Text="{Binding PreviewStatus}"
+                                               Classes="caption"
+                                               TextWrapping="Wrap" />
+                                </Grid>
+                            </Border>
+                        </Grid>
                     </Grid>
                 </Border>
             </Grid>
