@@ -44,6 +44,8 @@ public class TlvAttr : Structure, ITlvStructure
     public short[] FacialInfo { get; }
     public int CharHRLevel { get; set; }
     public int CharHRPoint { get; set; }
+    public int GuildId { get; set; }
+    public int CharGuild { get; set; }
 
     public void SetFacialInfo(short[] facialInfo)
     {
@@ -98,6 +100,7 @@ public class TlvAttr : Structure, ITlvStructure
         WriteTlvInt16(buffer, 228, HideSuite ? (short)1 : (short)0);
         WriteTlvInt16(buffer, 229, HideHelm ? (short)1 : (short)0);
         WriteTlvInt32(buffer, 241, SystemUnlockData.ToInt32());
+        WriteTlvInt32(buffer, 244, GuildId);
         WriteTlvInt32(buffer, 303, SystemUnlockExtData1.ToInt32());
         int faceAttrId = 252;
         for (int i = 0; i < CsProtoConstant.CS_MAX_FACIALINFO_COUNT; i++)
@@ -113,8 +116,6 @@ public class TlvAttr : Structure, ITlvStructure
 
         WriteTlvInt32(buffer, 322, CharHRLevel);
         WriteTlvInt32(buffer, 323, CharHRPoint);
-
-
     }
 
 

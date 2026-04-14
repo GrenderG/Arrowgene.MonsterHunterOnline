@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Numerics;
+using System.Text;
 using System.Text.Json;
 using Arrowgene.Buffers;
 using Arrowgene.Logging;
@@ -11,6 +12,8 @@ namespace Arrowgene.MonsterHunterOnline.Service.CsProto.Core
     public abstract class Structure
     {
         private static readonly ILogger Logger = LogProvider.Logger<Logger>(typeof(Structure));
+
+        public virtual TlvMagic Magic { get; private set; } = TlvMagic.NoVariant;
 
         private static readonly JsonSerializerOptions JsonSerializerOptions = new JsonSerializerOptions
         {
@@ -288,7 +291,7 @@ namespace Arrowgene.MonsterHunterOnline.Service.CsProto.Core
             // at the moment using a tmp buffer, however it should be able to work with existing
             // buffer by adjusting position and length to delete in case of error.
             StreamBuffer tmp = new StreamBuffer();
-            WriteByte(tmp, (byte)TlvMagic.NoVariant);
+            WriteByte(tmp, (byte)val.Magic);
             int startPos = tmp.Position;
             WriteInt32(tmp, 0);
             val.WriteTlv(tmp);
@@ -468,5 +471,130 @@ namespace Arrowgene.MonsterHunterOnline.Service.CsProto.Core
                 WriteInt32(buffer, val[i]);
             }
         }
+
+        #region AI Generated methods
+        protected void WriteTlvFloat(IBuffer buffer, int id, float val)
+        {
+            WriteTlvTag(buffer, id, TlvType.ID_4_BYTE);
+            WriteFloat(buffer, val);
+        }
+
+        protected void WriteTlvFloatArr(IBuffer buffer, int id, float[] val)
+        {
+            WriteTlvTag(buffer, id, TlvType.ID_4_BYTE);
+            int count = val.Length;
+            WriteInt32(buffer, count * 4);
+            for (int i = 0; i < count; i++)
+            {
+                WriteFloat(buffer, val[i]);
+            }
+        }
+
+        protected void WriteTlvInt16Arr(IBuffer buffer, int id, short[] val)
+        {
+            WriteTlvTag(buffer, id, TlvType.ID_2_BYTE);
+            int count = val.Length;
+            WriteInt32(buffer, count * 2);
+            for (int i = 0; i < count; i++)
+            {
+                WriteInt16(buffer, val[i]);
+            }
+        }
+
+        protected void WriteTlvInt64Arr(IBuffer buffer, int id, long[] val)
+        {
+            WriteTlvTag(buffer, id, TlvType.ID_8_BYTE);
+            int count = val.Length;
+            WriteInt32(buffer, count * 8);
+            for (int i = 0; i < count; i++)
+            {
+                WriteInt64(buffer, val[i]);
+            }
+        }
+
+        protected void WriteTlvByteArr(IBuffer buffer, int id, byte[] val)
+        {
+            if (val == null || val.Length == 0) return;
+            WriteTlvTag(buffer, id, TlvType.ID_LENGTH_DELIMITED);
+            WriteInt32(buffer, val.Length);
+            buffer.WriteBytes(val);
+        }
+
+        /// <summary>
+        /// Writes a length-delimited block of Int32 values (wire_type=5 = ID_LENGTH_DELIMITED).
+        /// Matches the C++ TDR writer pattern: WriteVarUInt(tag|5) + WriteInt(count*4) + WriteInt32[].
+        /// Use instead of WriteTlvInt32Arr for raw int arrays embedded in TLV structures.
+        /// </summary>
+        protected void WriteTlvInt32Block(IBuffer buffer, int id, int[] val)
+        {
+            if (val == null || val.Length == 0) return;
+            WriteTlvTag(buffer, id, TlvType.ID_LENGTH_DELIMITED);
+            WriteInt32(buffer, val.Length * 4);
+            for (int i = 0; i < val.Length; i++)
+                WriteInt32(buffer, val[i]);
+        }
+
+        protected void WriteTlvString(IBuffer buffer, int id, string val)
+        {
+            if (string.IsNullOrEmpty(val)) return;
+            byte[] bytes = Encoding.UTF8.GetBytes(val);
+            WriteTlvTag(buffer, id, TlvType.ID_LENGTH_DELIMITED);
+            int lenPos = buffer.Position;
+            WriteInt32(buffer, 0);
+            buffer.WriteBytes(bytes);
+            int endPos = buffer.Position;
+            buffer.Position = lenPos;
+            WriteInt32(buffer, endPos - lenPos - 4);
+            buffer.Position = endPos;
+        }
+
+        protected void WriteTlvVarInt32(IBuffer buffer, int id, int val)
+        {
+            WriteTlvTag(buffer, id, TlvType.ID_VARINT);
+            uint zigzag = (uint)((val << 1) ^ (val >> 31));
+            WriteVarUInt(buffer, zigzag);
+        }
+
+        protected void WriteTlvVarUInt32(IBuffer buffer, int id, uint val)
+        {
+            WriteTlvTag(buffer, id, TlvType.ID_VARINT);
+            WriteVarUInt(buffer, val);
+        }
+
+        protected void WriteTlvVarInt16(IBuffer buffer, int id, short val)
+        {
+            WriteTlvTag(buffer, id, TlvType.ID_VARINT);
+            ushort zigzag = (ushort)((val << 1) ^ (val >> 15));
+            WriteVarUInt(buffer, zigzag);
+        }
+
+        protected void WriteTlvVarInt16Arr(IBuffer buffer, int id, short[] val)
+        {
+            if (val == null || val.Length == 0) return;
+            WriteTlvTag(buffer, id, TlvType.ID_LENGTH_DELIMITED);
+            int lenPos = buffer.Position;
+            WriteInt32(buffer, 0);
+            int startPos = buffer.Position;
+            for (int i = 0; i < val.Length; i++)
+            {
+                ushort zigzag = (ushort)((val[i] << 1) ^ (val[i] >> 15));
+                WriteVarUInt(buffer, zigzag);
+            }
+            int endPos = buffer.Position;
+            buffer.Position = lenPos;
+            WriteInt32(buffer, endPos - startPos);
+            buffer.Position = endPos;
+        }
+
+        private void WriteVarUInt(IBuffer buffer, uint value)
+        {
+            while (value >= 0x80)
+            {
+                buffer.WriteByte((byte)((value & 0x7F) | 0x80));
+                value >>= 7;
+            }
+            buffer.WriteByte((byte)value);
+        }
+        #endregion
     }
 }

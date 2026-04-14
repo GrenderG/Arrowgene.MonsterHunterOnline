@@ -127,6 +127,7 @@ namespace Arrowgene.MonsterHunterOnline.Service
             _csProtoPacketHandler.AddHandler(new ChangeTownInstanceReqHandler());
             _csProtoPacketHandler.AddHandler(new ChatBroadcastReqHandler(Chat));
             _csProtoPacketHandler.AddHandler(new ChatPrivateReqHandler(Chat));
+            _csProtoPacketHandler.AddHandler(new GuildGetGuilds());
             _csProtoPacketHandler.AddHandler(new CreateRoleReqHandler(CharacterManager));
             _csProtoPacketHandler.AddHandler(new DataLoadHandler(CharacterManager));
             _csProtoPacketHandler.AddHandler(new DeleteRoleReqHandler(CharacterManager));
