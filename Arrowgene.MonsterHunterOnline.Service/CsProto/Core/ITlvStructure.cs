@@ -1,4 +1,5 @@
 using Arrowgene.Buffers;
+using Arrowgene.MonsterHunterOnline.Service.Tdr;
 
 namespace Arrowgene.MonsterHunterOnline.Service.CsProto.Core
 {
@@ -9,6 +10,7 @@ namespace Arrowgene.MonsterHunterOnline.Service.CsProto.Core
     /// </summary>
     public interface ITlvStructure
     {
+        TlvMagic Magic { get; }
         void WriteTlv(IBuffer buffer);
         void ReadTlv(IBuffer buffer);
     }

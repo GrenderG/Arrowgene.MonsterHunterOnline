@@ -233,5 +233,17 @@ namespace Arrowgene.MonsterHunterOnline.Service.CsProto.Core
 
         public static CsCsProtoStructurePacket<SCGuideBookAutoFirstOpenRsp> SCGuideBookAutoFirstOpenRsp =>
             new(CS_CMD_ID.S2C_CMD_GUIDE_BOOK_AUTO_FIRST_OPEN_RSP);
+
+        public static CsCsProtoStructurePacket<GetGuilds> GetGuilds =>
+            new(CS_CMD_ID.S2C_CMD_GUILD_GETGUILDS);
+
+        public static CsCsProtoStructurePacket<GetGuilders> GetGuilders =>
+            new(CS_CMD_ID.S2C_CMD_GUILD_GETGUILDERS);
+
+        public static CsCsProtoStructurePacket<GetGuildDetail> GetGuildDetail =>
+            new(CS_CMD_ID.S2C_CMD_GUILD_GETGUILDDETAIL);
+        
+
+
     }
 }

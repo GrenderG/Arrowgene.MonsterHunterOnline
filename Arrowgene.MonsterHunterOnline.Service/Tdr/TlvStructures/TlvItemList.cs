@@ -6,9 +6,15 @@ using Arrowgene.MonsterHunterOnline.Service.System.ItemSystem;
 
 namespace Arrowgene.MonsterHunterOnline.Service.Tdr.TlvStructures;
 
+
+/// <summary>
+/// TLV Structure for item count with short array.
+/// C++ Reader: crygame.dll+sub_101648B0 (UnkTlv0102)
+/// C++ Printer: crygame.dll+sub_10164D10
+/// </summary>
 public class TlvItemList : Structure, ITlvStructure
 {
-    private const int ItemsMaxSize = 0x9C4;
+    private const int ItemsMaxSize = 0x9C4; // 200
 
     public TlvItemList()
     {
