@@ -461,12 +461,6 @@ namespace Arrowgene.MonsterHunterOnline.Service.CsProto.Core
             WriteUInt64(buffer, val);
         }
 
-        protected void WriteTlvFloat(IBuffer buffer, int id, float val)
-        {
-            WriteTlvTag(buffer, id, TlvType.ID_4_BYTE);
-            WriteFloat(buffer, val);
-        }
-
         protected void WriteTlvInt32Arr(IBuffer buffer, int id, int[] val)
         {
             WriteTlvTag(buffer, id, TlvType.ID_4_BYTE);
@@ -476,6 +470,13 @@ namespace Arrowgene.MonsterHunterOnline.Service.CsProto.Core
             {
                 WriteInt32(buffer, val[i]);
             }
+        }
+
+        #region AI Generated methods
+        protected void WriteTlvFloat(IBuffer buffer, int id, float val)
+        {
+            WriteTlvTag(buffer, id, TlvType.ID_4_BYTE);
+            WriteFloat(buffer, val);
         }
 
         protected void WriteTlvFloatArr(IBuffer buffer, int id, float[] val)
@@ -594,5 +595,6 @@ namespace Arrowgene.MonsterHunterOnline.Service.CsProto.Core
             }
             buffer.WriteByte((byte)value);
         }
+        #endregion
     }
 }
