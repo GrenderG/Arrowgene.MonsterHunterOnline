@@ -291,10 +291,7 @@ namespace Arrowgene.MonsterHunterOnline.Service.CsProto.Core
             // at the moment using a tmp buffer, however it should be able to work with existing
             // buffer by adjusting position and length to delete in case of error.
             StreamBuffer tmp = new StreamBuffer();
-            if (val is TlvDebug)
-                WriteByte(tmp, (byte)TlvMagic.Debug);
-            else
-                WriteByte(tmp, (byte)Magic);
+            WriteByte(tmp, (byte)val.Magic);
             int startPos = tmp.Position;
             WriteInt32(tmp, 0);
             val.WriteTlv(tmp);
