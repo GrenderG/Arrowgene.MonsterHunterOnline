@@ -16,11 +16,43 @@
         Title="{Binding Title}">
 
     <Design.DataContext>
-        <!-- This only sets the DataContext for the previewer in an IDE,
-             to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
         <vm:MainWindowViewModel/>
     </Design.DataContext>
 
-    <controls:IIPSArchiveFileExplorer />
+    <Window.Styles>
+        <Style Selector="TabControl#MainTabs">
+            <Setter Property="Padding" Value="0" />
+        </Style>
+        <Style Selector="TabControl#MainTabs > TabItem">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Padding" Value="16,8" />
+            <Setter Property="Foreground" Value="#64748B" />
+        </Style>
+        <Style Selector="TabControl#MainTabs > TabItem:selected">
+            <Setter Property="Foreground" Value="#0F172A" />
+        </Style>
+        <Style Selector="TabControl#MainTabs > TabItem:pointerover">
+            <Setter Property="Foreground" Value="#334155" />
+        </Style>
+        <Style Selector="TabControl#MainTabs > TabItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Foreground" Value="#0F172A" />
+        </Style>
+        <Style Selector="TabControl#MainTabs > TabItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Foreground" Value="#334155" />
+        </Style>
+    </Window.Styles>
+
+    <TabControl x:Name="MainTabs">
+        <TabItem Header="IIPS Archive Explorer">
+            <controls:IIPSArchiveFileExplorer />
+        </TabItem>
+        <TabItem Header="Level Map Viewer">
+            <controls:LevelMapViewer />
+        </TabItem>
+        <TabItem Header="Quest Viewer">
+            <controls:QuestViewer />
+        </TabItem>
+    </TabControl>
 
 </Window>

@@ -129,6 +129,16 @@ public partial class IIPSArchiveFileExplorer : UserControl
         }
     }
 
+    private async void OpenFileListClick(object? sender, RoutedEventArgs e)
+    {
+        string? path = await PickFileAsync("Open IIPS file list", CreateFileListFileTypes());
+
+        if (!string.IsNullOrEmpty(path))
+        {
+            ViewModel.TryOpenFileList(path);
+        }
+    }
+
     private void SaveArchiveClick(object? sender, RoutedEventArgs e)
     {
         ViewModel.TrySaveArchive();
@@ -278,6 +288,17 @@ public partial class IIPSArchiveFileExplorer : UserControl
             new FilePickerFileType("IIPS Archive")
             {
                 Patterns = ["*.iips", "*.ifs", "*.mpq"]
+            }
+        ];
+    }
+
+    private static IReadOnlyList<FilePickerFileType> CreateFileListFileTypes()
+    {
+        return
+        [
+            new FilePickerFileType("IIPS File List")
+            {
+                Patterns = ["*.lst"]
             }
         ];
     }

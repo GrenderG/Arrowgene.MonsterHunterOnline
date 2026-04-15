@@ -2,5 +2,5 @@
 
 public partial class MainWindowViewModel : ViewModelBase
 {
-    public string Title { get; } = "IIPS Archive Explorer";
+    public string Title { get; } = "MHO Tools";
 }

@@ -221,9 +221,13 @@
                         <Button Classes="toolbar-text"
                                 Content="Open"
                                 Click="OpenArchiveClick" />
+                        <Button Classes="toolbar-text"
+                                Content="File List"
+                                Click="OpenFileListClick" />
                         <Button Classes="toolbar-icon"
                                 Click="SaveArchiveClick"
                                 IsEnabled="{Binding CanSaveArchive}"
+                                IsVisible="{Binding IsNotUnifiedMode}"
                                 ToolTip.Tip="Save archive">
                             <PathIcon Classes="toolbar-icon"
                                       Data="{StaticResource SaveIcon}" />
@@ -232,11 +236,13 @@
                         <Border Width="1"
                                 Height="20"
                                 Background="#374151"
-                                VerticalAlignment="Center" />
+                                VerticalAlignment="Center"
+                                IsVisible="{Binding IsNotUnifiedMode}" />
 
                         <Button Classes="toolbar-icon"
                                 Click="AddFileClick"
                                 IsEnabled="{Binding CanAddFile}"
+                                IsVisible="{Binding IsNotUnifiedMode}"
                                 ToolTip.Tip="Add file">
                             <PathIcon Classes="toolbar-icon"
                                       Data="{StaticResource AddIcon}" />
@@ -244,6 +250,7 @@
                         <Button Classes="toolbar-icon"
                                 Click="ModifySelectionClick"
                                 IsEnabled="{Binding CanModifySelection}"
+                                IsVisible="{Binding IsNotUnifiedMode}"
                                 ToolTip.Tip="Modify selected file">
                             <PathIcon Classes="toolbar-icon"
                                       Data="{StaticResource EditIcon}" />
@@ -251,6 +258,7 @@
                         <Button Classes="toolbar-icon"
                                 Click="RemoveSelectionClick"
                                 IsEnabled="{Binding CanRemoveSelection}"
+                                IsVisible="{Binding IsNotUnifiedMode}"
                                 ToolTip.Tip="Remove selection">
                             <PathIcon Classes="toolbar-icon"
                                       Data="{StaticResource RemoveIcon}" />

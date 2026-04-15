@@ -45,6 +45,8 @@ public sealed class IIPSArchiveFileExplorerViewModel : ViewModelBase, IDisposabl
     private static readonly Encoding GbkEncoding = Encoding.GetEncoding("GBK", EncoderFallback.ExceptionFallback, DecoderFallback.ExceptionFallback);
 
     private IIPSArchive? _archive;
+    private IIPSUnifiedArchive? _unifiedArchive;
+    private bool _isUnifiedMode;
     private string _archiveFileName = "No archive loaded";
     private string _archiveFilePath = "Select an IIPS archive to inspect its contents.";
     private string _statusText = "Open an IIPS archive to browse archive paths, inspect metadata, and extract entries.";
@@ -95,7 +97,7 @@ public sealed class IIPSArchiveFileExplorerViewModel : ViewModelBase, IDisposabl
     private List<DatSheetViewModel> _datPreviewSheets = [];
     private int _datSelectedSheetIndex;
     private bool _isHexMode;
-    private bool _isHexFallback;
+    private bool _userToggledHex;
     private byte[]? _currentPreviewData;
     private long _currentPreviewLength;
 
@@ -184,6 +186,20 @@ public sealed class IIPSArchiveFileExplorerViewModel : ViewModelBase, IDisposabl
         get => _hasUnsavedChanges;
         private set => SetProperty(ref _hasUnsavedChanges, value);
     }
+
+    public bool IsUnifiedMode
+    {
+        get => _isUnifiedMode;
+        private set
+        {
+            if (SetProperty(ref _isUnifiedMode, value))
+            {
+                OnPropertyChanged(nameof(IsNotUnifiedMode));
+            }
+        }
+    }
+
+    public bool IsNotUnifiedMode => !IsUnifiedMode;
 
     public bool CanExtractSelection
     {
@@ -399,13 +415,7 @@ public sealed class IIPSArchiveFileExplorerViewModel : ViewModelBase, IDisposabl
         private set => SetProperty(ref _isHexMode, value);
     }
 
-    public bool IsHexFallback
-    {
-        get => _isHexFallback;
-        private set => SetProperty(ref _isHexFallback, value);
-    }
-
-    public bool CanToggleHex => _selectedNode?.Entry != null && !_isHexFallback;
+    public bool CanToggleHex => _selectedNode?.Entry != null;
 
     public string TextPreviewContent
     {
@@ -440,9 +450,24 @@ public sealed class IIPSArchiveFileExplorerViewModel : ViewModelBase, IDisposabl
         }
     }
 
+    public bool TryOpenFileList(string path)
+    {
+        try
+        {
+            IIPSUnifiedArchive unified = IIPSUnifiedArchive.Open(path);
+            SwapUnifiedArchive(unified, path);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            StatusText = $"Failed to open file list: {ex.Message}";
+            return false;
+        }
+    }
+
     public bool TryExtractAll(string outputDirectory)
     {
-        if (_archive == null)
+        if (!HasArchive)
         {
             StatusText = "Open an archive before extracting.";
             return false;
@@ -450,8 +475,36 @@ public sealed class IIPSArchiveFileExplorerViewModel : ViewModelBase, IDisposabl
 
         try
         {
-            _archive.ExtractAll(outputDirectory);
-            StatusText = $"Extracted {EntryCount} archive entries to {outputDirectory}.";
+            if (_isUnifiedMode && _unifiedArchive != null)
+            {
+                Directory.CreateDirectory(outputDirectory);
+                int extracted = 0;
+                foreach (IIPSArchiveEntry entry in _unifiedArchive.MergedEntries)
+                {
+                    if (!entry.Exists || entry.Length == 0 || string.IsNullOrEmpty(entry.ArchivePath))
+                    {
+                        continue;
+                    }
+
+                    string outputPath = Path.Combine(outputDirectory, entry.ArchivePath!.Replace('\\', Path.DirectorySeparatorChar));
+                    string? directory = Path.GetDirectoryName(outputPath);
+                    if (!string.IsNullOrEmpty(directory))
+                    {
+                        Directory.CreateDirectory(directory);
+                    }
+
+                    File.WriteAllBytes(outputPath, entry.ReadAllBytes());
+                    extracted++;
+                }
+
+                StatusText = $"Extracted {extracted} entries to {outputDirectory}.";
+            }
+            else if (_archive != null)
+            {
+                _archive.ExtractAll(outputDirectory);
+                StatusText = $"Extracted {EntryCount} archive entries to {outputDirectory}.";
+            }
+
             return true;
         }
         catch (Exception ex)
@@ -645,6 +698,7 @@ public sealed class IIPSArchiveFileExplorerViewModel : ViewModelBase, IDisposabl
     {
         DisposeArchive();
         _archive = archive;
+        IsUnifiedMode = false;
         SetFilterTextSilently(string.Empty);
         _lastSelectionPath = null;
 
@@ -664,6 +718,33 @@ public sealed class IIPSArchiveFileExplorerViewModel : ViewModelBase, IDisposabl
         StatusText = UnnamedEntryCount == 0
             ? $"Loaded {EntryCount} entries from {ArchiveFileName}."
             : $"Loaded {EntryCount} entries from {ArchiveFileName}. {UnnamedEntryCount} entries are still unnamed.";
+    }
+
+    private void SwapUnifiedArchive(IIPSUnifiedArchive unified, string path)
+    {
+        DisposeArchive();
+        _unifiedArchive = unified;
+        IsUnifiedMode = true;
+        SetFilterTextSilently(string.Empty);
+        _lastSelectionPath = null;
+
+        ArchiveFileName = Path.GetFileName(path);
+        ArchiveFilePath = path;
+        FormatVersionText = unified.Version ?? "-";
+        SectorSizeText = $"{unified.LoadedArchives.Count} archives";
+        HeaderHashText = "-";
+        BetHashText = "-";
+        HetHashText = "-";
+        OnPropertyChanged(nameof(HashSummaryTooltip));
+        HasArchive = true;
+        HasUnsavedChanges = false;
+
+        RebuildUnifiedTree(unified);
+
+        string missingText = unified.MissingArchives.Count > 0
+            ? $" ({unified.MissingArchives.Count} missing)"
+            : "";
+        StatusText = $"Loaded {EntryCount} merged entries from {unified.LoadedArchives.Count} archives{missingText}.";
     }
 
     public string SuggestArchivePath(string sourcePath)
@@ -739,6 +820,41 @@ public sealed class IIPSArchiveFileExplorerViewModel : ViewModelBase, IDisposabl
         DirectoryCount = directories.Count + (unnamedRoot == null ? 0 : 1);
         UpdateToolbarState();
         ApplyFilter(preferredSelectionPath);
+    }
+
+    private void RebuildUnifiedTree(IIPSUnifiedArchive unified)
+    {
+        Dictionary<string, IIPSArchiveTreeNodeViewModel> directories = new(StringComparer.OrdinalIgnoreCase);
+        List<IIPSArchiveTreeNodeViewModel> roots = [];
+
+        foreach (IIPSArchiveEntry entry in unified.MergedEntries)
+        {
+            if (!string.IsNullOrWhiteSpace(entry.ArchivePath))
+            {
+                AddNamedEntryNode(entry, entry.ArchivePath!, directories, roots);
+            }
+        }
+
+        foreach (IIPSArchiveTreeNodeViewModel root in roots)
+        {
+            root.SortRecursive();
+        }
+
+        IReadOnlyList<IIPSArchiveTreeNodeViewModel> sortedRoots = roots
+            .OrderByDescending(node => node.IsDirectory)
+            .ThenBy(node => node.Name, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        _allFileNodes = sortedRoots
+            .SelectMany(static root => root.EnumerateFileNodes())
+            .OrderBy(node => node.DisplayPath, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        EntryCount = unified.MergedEntries.Count;
+        NamedEntryCount = EntryCount;
+        UnnamedEntryCount = 0;
+        DirectoryCount = directories.Count;
+        UpdateToolbarState();
+        ApplyFilter();
     }
 
     private static void AddNamedEntryNode(IIPSArchiveEntry entry,
@@ -849,12 +965,15 @@ public sealed class IIPSArchiveFileExplorerViewModel : ViewModelBase, IDisposabl
         ClearImagePreview();
         _archive?.Dispose();
         _archive = null;
+        _unifiedArchive?.Dispose();
+        _unifiedArchive = null;
     }
 
     private void ResetArchiveState()
     {
         HasArchive = false;
         HasUnsavedChanges = false;
+        IsUnifiedMode = false;
         CanExtractSelection = false;
         CanAddFile = false;
         CanModifySelection = false;
@@ -1029,8 +1148,7 @@ public sealed class IIPSArchiveFileExplorerViewModel : ViewModelBase, IDisposabl
 
     public void ToggleHexMode()
     {
-        if (_isHexFallback) return;
-        IsHexMode = !IsHexMode;
+        _userToggledHex = !_userToggledHex;
         if (_selectedNode != null)
         {
             UpdatePreview(_selectedNode);
@@ -1039,7 +1157,6 @@ public sealed class IIPSArchiveFileExplorerViewModel : ViewModelBase, IDisposabl
 
     private void UpdatePreview(IIPSArchiveTreeNodeViewModel node)
     {
-        IsHexFallback = false;
         OnPropertyChanged(nameof(CanToggleHex));
 
         IIPSArchiveEntry? entry = node.Entry;
@@ -1059,43 +1176,48 @@ public sealed class IIPSArchiveFileExplorerViewModel : ViewModelBase, IDisposabl
             return;
         }
 
-        if (IsHexMode)
+        if (_userToggledHex)
         {
+            IsHexMode = true;
             UpdateHexPreview(node);
             return;
         }
 
         string? extension = Path.GetExtension(entry.ArchivePath ?? node.Name);
-        if (string.IsNullOrWhiteSpace(extension))
+
+        if (!string.IsNullOrWhiteSpace(extension))
         {
-            UpdateHexPreview(node);
-            return;
+            if (PreviewableImageExtensions.Contains(extension))
+            {
+                IsHexMode = false;
+                UpdateImagePreview(node);
+                return;
+            }
+
+            if (string.Equals(extension, ".dat", StringComparison.OrdinalIgnoreCase))
+            {
+                IsHexMode = false;
+                UpdateDatPreview(node);
+                return;
+            }
+
+            if (string.Equals(extension, ".csv", StringComparison.OrdinalIgnoreCase))
+            {
+                IsHexMode = false;
+                UpdateCsvPreview(node);
+                return;
+            }
+
+            if (PreviewableTextExtensions.Contains(extension))
+            {
+                IsHexMode = false;
+                UpdateTextPreview(node);
+                return;
+            }
         }
 
-        if (PreviewableImageExtensions.Contains(extension))
-        {
-            UpdateImagePreview(node);
-            return;
-        }
-
-        if (string.Equals(extension, ".dat", StringComparison.OrdinalIgnoreCase))
-        {
-            UpdateDatPreview(node);
-            return;
-        }
-
-        if (string.Equals(extension, ".csv", StringComparison.OrdinalIgnoreCase))
-        {
-            UpdateCsvPreview(node);
-            return;
-        }
-
-        if (PreviewableTextExtensions.Contains(extension))
-        {
-            UpdateTextPreview(node);
-            return;
-        }
-
+        // No recognized preview - fall back to hex
+        IsHexMode = true;
         UpdateHexPreview(node);
     }
 
@@ -1359,12 +1481,6 @@ public sealed class IIPSArchiveFileExplorerViewModel : ViewModelBase, IDisposabl
             byte[] data = entry.ReadAllBytes();
             _currentPreviewData = data;
             _currentPreviewLength = entry.Length;
-            if (!IsHexMode)
-            {
-                IsHexMode = true;
-                IsHexFallback = true;
-                OnPropertyChanged(nameof(CanToggleHex));
-            }
             ShowHexPreview(data, entry.Length);
         }
         catch (Exception ex)

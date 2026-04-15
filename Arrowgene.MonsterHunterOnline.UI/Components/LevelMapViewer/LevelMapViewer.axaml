@@ -1,0 +1,208 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:local="using:Arrowgene.MonsterHunterOnline.UI.Components"
+             x:Class="Arrowgene.MonsterHunterOnline.UI.Components.LevelMapViewer"
+             x:DataType="local:LevelMapViewerViewModel"
+             mc:Ignorable="d">
+
+    <Design.DataContext>
+        <local:LevelMapViewerViewModel />
+    </Design.DataContext>
+
+    <UserControl.Styles>
+        <Style Selector="Border.pane">
+            <Setter Property="Background" Value="#F8F7F4" />
+            <Setter Property="BorderBrush" Value="#D7D3CC" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="Padding" Value="12" />
+        </Style>
+
+        <Style Selector="TextBlock.caption">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Foreground" Value="#667085" />
+        </Style>
+
+        <Style Selector="Border.pill">
+            <Setter Property="Background" Value="#ECE9E2" />
+            <Setter Property="CornerRadius" Value="999" />
+            <Setter Property="Padding" Value="10,4" />
+        </Style>
+
+        <Style Selector="Button.toolbar-text">
+            <Setter Property="Padding" Value="12,6" />
+            <Setter Property="MinHeight" Value="34" />
+        </Style>
+
+        <Style Selector="CheckBox.filter-check">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Padding" Value="4,0" />
+            <Setter Property="MinHeight" Value="24" />
+        </Style>
+
+        <Style Selector="ListBox.level-list">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
+    </UserControl.Styles>
+
+    <Border Background="#F2F1EC">
+        <DockPanel LastChildFill="True">
+
+            <!-- Top bar -->
+            <Border DockPanel.Dock="Top"
+                    Background="#111827"
+                    Padding="16,12">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+                    <StackPanel Spacing="4" VerticalAlignment="Center">
+                        <TextBlock Text="Level Map Viewer"
+                                   FontSize="18"
+                                   FontWeight="SemiBold"
+                                   Foreground="#F9FAFB" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="1"
+                                Orientation="Horizontal"
+                                VerticalAlignment="Center"
+                                Spacing="8">
+                        <TextBox x:Name="ClientFilesPathBox"
+                                 Text="{Binding ClientFilesPath, Mode=TwoWay}"
+                                 Watermark="Path to MHO client files directory"
+                                 Width="500"
+                                 MinHeight="34"
+                                 Padding="10,7"
+                                 FontSize="12"
+                                 Foreground="#F9FAFB"
+                                 Background="#1F2937"
+                                 BorderBrush="#374151"
+                                 CaretBrush="#F9FAFB" />
+                        <Button Classes="toolbar-text"
+                                Content="Load"
+                                Click="LoadClientFilesClick" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- Filter bar -->
+            <Border DockPanel.Dock="Top"
+                    Background="#E8E5DE"
+                    BorderBrush="#D7D3CC"
+                    BorderThickness="0,0,0,1"
+                    Padding="16,8"
+                    IsVisible="{Binding HasLevels}">
+                <StackPanel Orientation="Horizontal" Spacing="16">
+                    <TextBlock Text="Show:"
+                               FontSize="11"
+                               FontWeight="SemiBold"
+                               Foreground="#334155"
+                               VerticalAlignment="Center" />
+                    <CheckBox Classes="filter-check"
+                              Content="Monsters"
+                              IsChecked="{Binding ShowMonsters}" />
+                    <CheckBox Classes="filter-check"
+                              Content="Resources"
+                              IsChecked="{Binding ShowResources}" />
+                    <CheckBox Classes="filter-check"
+                              Content="Player Spawns"
+                              IsChecked="{Binding ShowPlayerSpawns}" />
+                    <CheckBox Classes="filter-check"
+                              Content="Regions"
+                              IsChecked="{Binding ShowRegions}" />
+
+                    <Border Width="1" Height="20" Background="#374151" VerticalAlignment="Center" />
+
+                    <Border Classes="pill" IsVisible="{Binding SelectedLevelInfo, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                        <TextBlock Text="{Binding SelectedLevelInfo}"
+                                   FontWeight="SemiBold"
+                                   Foreground="#334155"
+                                   FontSize="11" />
+                    </Border>
+                </StackPanel>
+            </Border>
+
+            <!-- Status bar -->
+            <Border DockPanel.Dock="Bottom"
+                    Background="#F8F7F4"
+                    BorderBrush="#D7D3CC"
+                    BorderThickness="0,1,0,0"
+                    Padding="12,8">
+                <TextBlock Text="{Binding StatusText}"
+                           MaxLines="1"
+                           TextTrimming="CharacterEllipsis"
+                           Foreground="#334155"
+                           ToolTip.Tip="{Binding StatusText}" />
+            </Border>
+
+            <!-- Main content -->
+            <Grid ColumnDefinitions="280,6,*" MinHeight="0">
+
+                <!-- Level list -->
+                <Border Grid.Column="0"
+                        Classes="pane"
+                        Margin="12,12,6,12"
+                        MinHeight="0">
+                    <Grid RowDefinitions="Auto,*" MinHeight="0">
+                        <StackPanel Grid.Row="0" Spacing="2" Margin="0,0,0,8">
+                            <TextBlock Text="Levels"
+                                       FontSize="14"
+                                       FontWeight="SemiBold"
+                                       Foreground="#0F172A" />
+                            <TextBlock Text="{Binding Levels.Count, StringFormat='{}{0} levels loaded'}"
+                                       Classes="caption" />
+                        </StackPanel>
+
+                        <Border Grid.Row="1"
+                                Background="#FFFFFF"
+                                BorderBrush="#D7D3CC"
+                                BorderThickness="1"
+                                CornerRadius="10"
+                                Padding="4"
+                                MinHeight="0">
+                            <ListBox Classes="level-list"
+                                     ItemsSource="{Binding Levels}"
+                                     SelectedItem="{Binding SelectedLevel, Mode=TwoWay}"
+                                     MinHeight="0">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate x:DataType="local:LevelListItemViewModel">
+                                        <StackPanel Margin="4,3">
+                                            <TextBlock Text="{Binding Name}"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="#0F172A"
+                                                       FontSize="13" />
+                                            <TextBlock Text="{Binding Summary}"
+                                                       Foreground="#667085"
+                                                       FontSize="11" />
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </Border>
+                    </Grid>
+                </Border>
+
+                <!-- Splitter -->
+                <GridSplitter Grid.Column="1"
+                              Width="6"
+                              Background="#DDD9D1"
+                              ShowsPreview="True"
+                              HorizontalAlignment="Stretch"
+                              VerticalAlignment="Stretch" />
+
+                <!-- Map canvas -->
+                <Border Grid.Column="2"
+                        Classes="pane"
+                        Margin="0,12,12,12"
+                        MinHeight="0"
+                        Padding="0">
+                    <local:MapCanvas x:Name="MapCanvasControl"
+                                     Level="{Binding SelectedLevelData}"
+                                     ShowMonsters="{Binding ShowMonsters}"
+                                     ShowResources="{Binding ShowResources}"
+                                     ShowPlayerSpawns="{Binding ShowPlayerSpawns}"
+                                     ShowRegions="{Binding ShowRegions}" />
+                </Border>
+            </Grid>
+        </DockPanel>
+    </Border>
+</UserControl>
