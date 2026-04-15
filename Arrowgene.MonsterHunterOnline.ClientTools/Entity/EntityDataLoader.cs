@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using Arrowgene.Logging;
 using Arrowgene.MonsterHunterOnline.ClientTools.Dat;
+using Arrowgene.MonsterHunterOnline.ClientTools.FileProvider;
 
 namespace Arrowgene.MonsterHunterOnline.ClientTools.Entity;
 
@@ -41,33 +42,26 @@ public sealed class EntityDataLoader
         ("WorldMap", "World Map"),
     ];
 
-    public EntityDatabase Load(string clientFilesRoot)
+    public EntityDatabase Load(IFileProvider provider)
     {
-        string staticDir = Path.Combine(clientFilesRoot, "common", "staticdata");
-        if (!Directory.Exists(staticDir))
-        {
-            Logger.Error($"Static data directory not found: {staticDir}");
-            return new EntityDatabase();
-        }
-
         EntityDatabase db = new();
 
-        LoadMonsters(db, Path.Combine(staticDir, "monsterdata.dat"));
-        LoadMonsterDifficulty(db, Path.Combine(staticDir, "monsterdifficulty.dat"));
-        LoadNpcs(db, Path.Combine(staticDir, "npcdatanew.dat"));
-        LoadPets(db, Path.Combine(staticDir, "pet.dat"));
+        LoadMonsters(db, provider, "common/staticdata/monsterdata.dat");
+        LoadMonsterDifficulty(db, provider, "common/staticdata/monsterdifficulty.dat");
+        LoadNpcs(db, provider, "common/staticdata/npcdatanew.dat");
+        LoadPets(db, provider, "common/staticdata/pet.dat");
 
         Logger.Info($"Loaded {db.Monsters.Count} monsters, {db.Npcs.Count} NPCs, {db.Pets.Count} pets");
         return db;
     }
 
-    private void LoadMonsters(EntityDatabase db, string path)
+    private void LoadMonsters(EntityDatabase db, IFileProvider provider, string path)
     {
-        if (!File.Exists(path)) return;
+        if (!provider.Exists(path)) return;
         try
         {
             DatFile dat = new();
-            dat.Open(path);
+            dat.Open(provider.ReadAllBytes(path));
 
             // Load Monsters sheet
             TsvSheet? monstersSheet = FindSheet(dat, "Monsters");
@@ -147,13 +141,13 @@ public sealed class EntityDataLoader
         }
     }
 
-    private void LoadMonsterDifficulty(EntityDatabase db, string path)
+    private void LoadMonsterDifficulty(EntityDatabase db, IFileProvider provider, string path)
     {
-        if (!File.Exists(path)) return;
+        if (!provider.Exists(path)) return;
         try
         {
             DatFile dat = new();
-            dat.Open(path);
+            dat.Open(provider.ReadAllBytes(path));
 
             TsvSheet? sheet = FindSheet(dat, "Monsters");
             if (sheet?.Table == null || sheet.TableHead == null) return;
@@ -197,13 +191,13 @@ public sealed class EntityDataLoader
         }
     }
 
-    private void LoadNpcs(EntityDatabase db, string path)
+    private void LoadNpcs(EntityDatabase db, IFileProvider provider, string path)
     {
-        if (!File.Exists(path)) return;
+        if (!provider.Exists(path)) return;
         try
         {
             DatFile dat = new();
-            dat.Open(path);
+            dat.Open(provider.ReadAllBytes(path));
 
             TsvSheet? sheet = FindSheet(dat, "NPCData");
             if (sheet?.Table == null || sheet.TableHead == null) return;
@@ -258,13 +252,13 @@ public sealed class EntityDataLoader
         }
     }
 
-    private void LoadPets(EntityDatabase db, string path)
+    private void LoadPets(EntityDatabase db, IFileProvider provider, string path)
     {
-        if (!File.Exists(path)) return;
+        if (!provider.Exists(path)) return;
         try
         {
             DatFile dat = new();
-            dat.Open(path);
+            dat.Open(provider.ReadAllBytes(path));
 
             TsvSheet? sheet = FindSheet(dat, "宠物信息");
             if (sheet?.Table == null || sheet.TableHead == null) return;

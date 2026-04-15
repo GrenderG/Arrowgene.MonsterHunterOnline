@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
 using Arrowgene.MonsterHunterOnline.ClientTools.Entity;
+using Arrowgene.MonsterHunterOnline.ClientTools.FileProvider;
 using Arrowgene.MonsterHunterOnline.UI.Infrastructure;
 using Arrowgene.MonsterHunterOnline.UI.ViewModels;
 using Avalonia.Media.Imaging;
@@ -246,7 +247,7 @@ public sealed partial class EntityViewerViewModel : ViewModelBase
         StatusText = $"Showing {Entities.Count} of {_allEntities.Count} entities";
     }
 
-    public async Task LoadAsync(string path)
+    public async Task LoadAsync(IFileProvider provider)
     {
         IsLoading = true;
         StatusText = "Loading entity data...";
@@ -256,8 +257,8 @@ public sealed partial class EntityViewerViewModel : ViewModelBase
 
         try
         {
-            EntityDatabase db = await Task.Run(() => _loader.Load(path));
-            _icons.Initialize(path);
+            EntityDatabase db = await Task.Run(() => _loader.Load(provider));
+            _icons.Initialize(provider);
 
             foreach (var m in db.Monsters.OrderBy(x => x.Id))
                 _allEntities.Add(new EntityListItemViewModel(m, _icons.LoadMonsterIcon(m.Id)));

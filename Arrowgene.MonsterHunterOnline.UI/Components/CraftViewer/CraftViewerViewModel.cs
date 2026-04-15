@@ -5,6 +5,8 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Arrowgene.MonsterHunterOnline.ClientTools.Craft;
+using Arrowgene.MonsterHunterOnline.ClientTools.FileProvider;
+using Arrowgene.MonsterHunterOnline.UI.Infrastructure;
 using Arrowgene.MonsterHunterOnline.UI.ViewModels;
 using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -71,10 +73,9 @@ public sealed class CraftOutputViewModel
 public sealed partial class CraftViewerViewModel : ViewModelBase
 {
     private readonly CraftDataLoader _loader = new();
+    private readonly GameIconLoader _icons = new();
     private CraftDatabase? _database;
     private List<CraftListItemViewModel> _allRecipes = [];
-    private string _iconDir = string.Empty;
-    private readonly Dictionary<string, Bitmap?> _iconCache = [];
 
     [ObservableProperty] private string _statusText = "Open a data source from the toolbar.";
     [ObservableProperty] private bool _isLoading;
@@ -155,21 +156,9 @@ public sealed partial class CraftViewerViewModel : ViewModelBase
 
     private Bitmap? LoadIcon(int itemId)
     {
-        if (string.IsNullOrEmpty(_iconDir) || _database == null) return null;
+        if (_database == null) return null;
         if (!_database.ItemIcons.TryGetValue(itemId, out string? iconKey)) return null;
-        if (string.IsNullOrEmpty(iconKey)) return null;
-
-        if (_iconCache.TryGetValue(iconKey, out var cached)) return cached;
-
-        string path = Path.Combine(_iconDir, $"{iconKey}.png");
-        Bitmap? bmp = null;
-        if (File.Exists(path))
-        {
-            try { bmp = new Bitmap(path); }
-            catch { /* ignore broken files */ }
-        }
-        _iconCache[iconKey] = bmp;
-        return bmp;
+        return _icons.LoadItemIcon(iconKey);
     }
 
     private void ApplyFilter()
@@ -198,24 +187,23 @@ public sealed partial class CraftViewerViewModel : ViewModelBase
         StatusText = $"Showing {Recipes.Count} of {_allRecipes.Count} recipes";
     }
 
-    public async Task LoadAsync(string path)
+    public async Task LoadAsync(IFileProvider provider)
     {
         IsLoading = true;
         StatusText = "Loading craft data...";
         Recipes.Clear();
         _allRecipes.Clear();
-        _iconCache.Clear();
         EquipFilters.Clear();
         EquipFilters.Add("All");
         TypeFilters.Clear();
         TypeFilters.Add("All");
         OnPropertyChanged(nameof(HasRecipes));
 
-        _iconDir = Path.Combine(path, "libs", "ui", "flashassets", "images", "icon");
+        _icons.Initialize(provider);
 
         try
         {
-            _database = await Task.Run(() => _loader.Load(path));
+            _database = await Task.Run(() => _loader.Load(provider));
 
             HashSet<string> equips = [];
             HashSet<string> types = [];

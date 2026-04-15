@@ -3,6 +3,7 @@ using System.Globalization;
 using System.IO;
 using Arrowgene.Logging;
 using Arrowgene.MonsterHunterOnline.ClientTools.Dat;
+using Arrowgene.MonsterHunterOnline.ClientTools.FileProvider;
 
 namespace Arrowgene.MonsterHunterOnline.ClientTools.Item;
 
@@ -27,34 +28,27 @@ public sealed class ItemDataLoader
         "equipdata_jewelry.dat",
     ];
 
-    public ItemDatabase Load(string clientFilesRoot)
+    public ItemDatabase Load(IFileProvider provider)
     {
-        string staticDir = Path.Combine(clientFilesRoot, "common", "staticdata");
-        if (!Directory.Exists(staticDir))
-        {
-            Logger.Error($"Static data directory not found: {staticDir}");
-            return new ItemDatabase();
-        }
-
         ItemDatabase db = new();
 
         foreach (string fileName in ItemFiles)
         {
-            string path = Path.Combine(staticDir, fileName);
-            if (!File.Exists(path)) continue;
-            LoadFile(db, path, Path.GetFileNameWithoutExtension(fileName));
+            string rel = $"common/staticdata/{fileName}";
+            if (!provider.Exists(rel)) continue;
+            LoadFile(db, provider, rel, Path.GetFileNameWithoutExtension(fileName));
         }
 
         Logger.Info($"Loaded {db.Items.Count} items");
         return db;
     }
 
-    private void LoadFile(ItemDatabase db, string path, string sourceFile)
+    private void LoadFile(ItemDatabase db, IFileProvider provider, string relativePath, string sourceFile)
     {
         try
         {
             DatFile dat = new();
-            dat.Open(path);
+            dat.Open(provider.ReadAllBytes(relativePath));
 
             foreach (TsvSheet sheet in dat.Sheets)
             {
@@ -151,7 +145,7 @@ public sealed class ItemDataLoader
         }
         catch (Exception ex)
         {
-            Logger.Error($"Failed to load {path}: {ex.Message}");
+            Logger.Error($"Failed to load {relativePath}: {ex.Message}");
         }
     }
 

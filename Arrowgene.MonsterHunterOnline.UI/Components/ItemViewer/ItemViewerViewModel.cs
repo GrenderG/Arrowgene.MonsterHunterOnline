@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
+using Arrowgene.MonsterHunterOnline.ClientTools.FileProvider;
 using Arrowgene.MonsterHunterOnline.ClientTools.Item;
 using Arrowgene.MonsterHunterOnline.UI.Infrastructure;
 using Arrowgene.MonsterHunterOnline.UI.ViewModels;
@@ -203,7 +204,7 @@ public sealed partial class ItemViewerViewModel : ViewModelBase
         StatusText = $"Showing {Items.Count} of {_allItems.Count} items";
     }
 
-    public async Task LoadAsync(string path)
+    public async Task LoadAsync(IFileProvider provider)
     {
         IsLoading = true;
         StatusText = "Loading item data...";
@@ -219,8 +220,8 @@ public sealed partial class ItemViewerViewModel : ViewModelBase
 
         try
         {
-            ItemDatabase db = await Task.Run(() => _loader.Load(path));
-            _icons.Initialize(path);
+            ItemDatabase db = await Task.Run(() => _loader.Load(provider));
+            _icons.Initialize(provider);
 
             HashSet<string> cats = [];
             HashSet<string> rars = [];

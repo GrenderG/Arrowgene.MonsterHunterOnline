@@ -2,9 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Xml.Linq;
 using Arrowgene.Logging;
 using Arrowgene.MonsterHunterOnline.ClientTools.Dat;
+using Arrowgene.MonsterHunterOnline.ClientTools.FileProvider;
 
 namespace Arrowgene.MonsterHunterOnline.ClientTools.Quest;
 
@@ -12,27 +14,20 @@ public sealed class QuestDataLoader
 {
     private static readonly ILogger Logger = LogProvider.Logger(typeof(QuestDataLoader));
 
-    public QuestDatabase Load(string clientFilesRoot)
+    public QuestDatabase Load(IFileProvider provider)
     {
-        string staticDir = Path.Combine(clientFilesRoot, "common", "staticdata");
-        if (!Directory.Exists(staticDir))
-        {
-            Logger.Error($"Static data directory not found: {staticDir}");
-            return new QuestDatabase();
-        }
-
         QuestDatabase db = new();
 
-        LoadQuestFiles(db, staticDir);
-        LoadLibrary(db, Path.Combine(staticDir, "questlib.dat"));
-        LoadGroups(db, Path.Combine(staticDir, "questgroup.dat"));
-        LoadChapters(db, Path.Combine(staticDir, "questchapter.dat"));
-        LoadSeries(db, Path.Combine(staticDir, "questseries.dat"));
-        LoadLoot(db, Path.Combine(staticDir, "questloot.dat"));
-        LoadNpcs(db, Path.Combine(staticDir, "npcdatanew.dat"));
-        LoadMonsterNames(db, Path.Combine(staticDir, "monsterdata.dat"));
-        LoadItemNames(db, staticDir);
-        LoadLevelNames(db, Path.Combine(staticDir, "lin_entrust.dat"));
+        LoadQuestFiles(db, provider);
+        LoadLibrary(db, provider, "common/staticdata/questlib.dat");
+        LoadGroups(db, provider, "common/staticdata/questgroup.dat");
+        LoadChapters(db, provider, "common/staticdata/questchapter.dat");
+        LoadSeries(db, provider, "common/staticdata/questseries.dat");
+        LoadLoot(db, provider, "common/staticdata/questloot.dat");
+        LoadNpcs(db, provider, "common/staticdata/npcdatanew.dat");
+        LoadMonsterNames(db, provider, "common/staticdata/monsterdata.dat");
+        LoadItemNames(db, provider);
+        LoadLevelNames(db, provider, "common/staticdata/lin_entrust.dat");
 
         Logger.Info($"Loaded {db.Quests.Count} quests, {db.Libraries.Count} libraries, " +
                     $"{db.Groups.Count} groups, {db.Chapters.Count} chapters, {db.Series.Count} series, " +
@@ -42,16 +37,16 @@ public sealed class QuestDataLoader
         return db;
     }
 
-    private void LoadQuestFiles(QuestDatabase db, string staticDir)
+    private void LoadQuestFiles(QuestDatabase db, IFileProvider provider)
     {
-        string[] questFiles = Directory.GetFiles(staticDir, "quest_*.dat");
-        Array.Sort(questFiles, StringComparer.OrdinalIgnoreCase);
+        List<string> questFiles = provider.EnumerateFiles("common/staticdata", "quest_*.dat")
+            .OrderBy(f => f, StringComparer.OrdinalIgnoreCase).ToList();
 
         foreach (string file in questFiles)
         {
             try
             {
-                string xml = DecryptToXml(file);
+                string xml = DecryptToXml(provider, file);
                 if (xml == null) continue;
 
                 string fileName = Path.GetFileNameWithoutExtension(file);
@@ -75,12 +70,12 @@ public sealed class QuestDataLoader
         }
     }
 
-    private void LoadLibrary(QuestDatabase db, string path)
+    private void LoadLibrary(QuestDatabase db, IFileProvider provider, string path)
     {
-        if (!File.Exists(path)) return;
+        if (!provider.Exists(path)) return;
         try
         {
-            string xml = DecryptToXml(path);
+            string xml = DecryptToXml(provider, path);
             if (xml == null) return;
             XDocument doc = XDocument.Parse(xml);
             if (doc.Root == null) return;
@@ -120,12 +115,12 @@ public sealed class QuestDataLoader
         }
     }
 
-    private void LoadGroups(QuestDatabase db, string path)
+    private void LoadGroups(QuestDatabase db, IFileProvider provider, string path)
     {
-        if (!File.Exists(path)) return;
+        if (!provider.Exists(path)) return;
         try
         {
-            string xml = DecryptToXml(path);
+            string xml = DecryptToXml(provider, path);
             if (xml == null) return;
             XDocument doc = XDocument.Parse(xml);
             if (doc.Root == null) return;
@@ -162,12 +157,12 @@ public sealed class QuestDataLoader
         }
     }
 
-    private void LoadChapters(QuestDatabase db, string path)
+    private void LoadChapters(QuestDatabase db, IFileProvider provider, string path)
     {
-        if (!File.Exists(path)) return;
+        if (!provider.Exists(path)) return;
         try
         {
-            string xml = DecryptToXml(path);
+            string xml = DecryptToXml(provider, path);
             if (xml == null) return;
             XDocument doc = XDocument.Parse(xml);
             if (doc.Root == null) return;
@@ -213,12 +208,12 @@ public sealed class QuestDataLoader
         }
     }
 
-    private void LoadSeries(QuestDatabase db, string path)
+    private void LoadSeries(QuestDatabase db, IFileProvider provider, string path)
     {
-        if (!File.Exists(path)) return;
+        if (!provider.Exists(path)) return;
         try
         {
-            string xml = DecryptToXml(path);
+            string xml = DecryptToXml(provider, path);
             if (xml == null) return;
             XDocument doc = XDocument.Parse(xml);
             if (doc.Root == null) return;
@@ -240,13 +235,13 @@ public sealed class QuestDataLoader
         }
     }
 
-    private void LoadLoot(QuestDatabase db, string path)
+    private void LoadLoot(QuestDatabase db, IFileProvider provider, string path)
     {
-        if (!File.Exists(path)) return;
+        if (!provider.Exists(path)) return;
         try
         {
             DatFile dat = new();
-            dat.Open(path);
+            dat.Open(provider.ReadAllBytes(path));
 
             foreach (TsvSheet sheet in dat.Sheets)
             {
@@ -285,13 +280,13 @@ public sealed class QuestDataLoader
         }
     }
 
-    private void LoadNpcs(QuestDatabase db, string path)
+    private void LoadNpcs(QuestDatabase db, IFileProvider provider, string path)
     {
-        if (!File.Exists(path)) return;
+        if (!provider.Exists(path)) return;
         try
         {
             DatFile dat = new();
-            dat.Open(path);
+            dat.Open(provider.ReadAllBytes(path));
 
             foreach (TsvSheet sheet in dat.Sheets)
             {
@@ -323,13 +318,13 @@ public sealed class QuestDataLoader
         }
     }
 
-    private void LoadMonsterNames(QuestDatabase db, string path)
+    private void LoadMonsterNames(QuestDatabase db, IFileProvider provider, string path)
     {
-        if (!File.Exists(path)) return;
+        if (!provider.Exists(path)) return;
         try
         {
             DatFile dat = new();
-            dat.Open(path);
+            dat.Open(provider.ReadAllBytes(path));
 
             foreach (TsvSheet sheet in dat.Sheets)
             {
@@ -353,7 +348,7 @@ public sealed class QuestDataLoader
         }
     }
 
-    private void LoadItemNames(QuestDatabase db, string staticDir)
+    private void LoadItemNames(QuestDatabase db, IFileProvider provider)
     {
         string[] itemFiles =
         [
@@ -368,12 +363,12 @@ public sealed class QuestDataLoader
 
         foreach (string fileName in itemFiles)
         {
-            string path = Path.Combine(staticDir, fileName);
-            if (!File.Exists(path)) continue;
+            string rel = $"common/staticdata/{fileName}";
+            if (!provider.Exists(rel)) continue;
             try
             {
                 DatFile dat = new();
-                dat.Open(path);
+                dat.Open(provider.ReadAllBytes(rel));
 
                 foreach (TsvSheet sheet in dat.Sheets)
                 {
@@ -410,13 +405,13 @@ public sealed class QuestDataLoader
         }
     }
 
-    private void LoadLevelNames(QuestDatabase db, string path)
+    private void LoadLevelNames(QuestDatabase db, IFileProvider provider, string path)
     {
-        if (!File.Exists(path)) return;
+        if (!provider.Exists(path)) return;
         try
         {
             DatFile dat = new();
-            dat.Open(path);
+            dat.Open(provider.ReadAllBytes(path));
 
             foreach (TsvSheet sheet in dat.Sheets)
             {
@@ -798,10 +793,10 @@ public sealed class QuestDataLoader
         return check;
     }
 
-    private static string? DecryptToXml(string path)
+    private static string? DecryptToXml(IFileProvider provider, string path)
     {
         DatFile dat = new();
-        dat.Open(path);
+        dat.Open(provider.ReadAllBytes(path));
         if (dat.Content == null || dat.ContentType != DatFile.DatContentType.Content)
             return null;
         // Strip trailing null bytes from AES padding, then trim whitespace

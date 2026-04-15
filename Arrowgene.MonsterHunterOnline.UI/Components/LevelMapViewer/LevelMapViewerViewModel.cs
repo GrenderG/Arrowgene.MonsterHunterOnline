@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
+using Arrowgene.MonsterHunterOnline.ClientTools.FileProvider;
 using Arrowgene.MonsterHunterOnline.ClientTools.Level;
 using Arrowgene.MonsterHunterOnline.UI.ViewModels;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -101,7 +102,7 @@ public sealed partial class LevelMapViewerViewModel : ViewModelBase
         }
     }
 
-    public async Task LoadClientFilesAsync(string path)
+    public async Task LoadClientFilesAsync(IFileProvider provider)
     {
         IsLoading = true;
         StatusText = "Loading levels...";
@@ -110,7 +111,15 @@ public sealed partial class LevelMapViewerViewModel : ViewModelBase
 
         try
         {
-            List<LevelData> levels = await Task.Run(() => _loader.LoadAll(path));
+            // LevelDataLoader uses filesystem directly (XML, terrain, minimap) — needs a directory path
+            string? root = (provider as DirectoryFileProvider)?.Root;
+            if (root == null)
+            {
+                StatusText = "Level Map requires a local directory source.";
+                return;
+            }
+
+            List<LevelData> levels = await Task.Run(() => _loader.LoadAll(root));
 
             foreach (LevelData level in levels.OrderBy(l => l.Name, StringComparer.OrdinalIgnoreCase))
             {
@@ -119,7 +128,7 @@ public sealed partial class LevelMapViewerViewModel : ViewModelBase
 
             OnPropertyChanged(nameof(HasLevels));
             int minimapBackedLevels = levels.Count(level => level.ClientMiniMap != null);
-            StatusText = $"Loaded {levels.Count} levels from {path} ({minimapBackedLevels} with client minimap assets)";
+            StatusText = $"Loaded {levels.Count} levels from {root} ({minimapBackedLevels} with client minimap assets)";
 
             if (Levels.Count > 0)
             {

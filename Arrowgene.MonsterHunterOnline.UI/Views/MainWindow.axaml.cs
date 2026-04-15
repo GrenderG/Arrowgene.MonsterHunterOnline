@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
+using Arrowgene.MonsterHunterOnline.ClientTools.FileProvider;
 using Arrowgene.MonsterHunterOnline.ClientTools.IIPS;
 using Arrowgene.MonsterHunterOnline.UI.Components;
 using Arrowgene.MonsterHunterOnline.UI.Infrastructure;
@@ -14,20 +16,7 @@ namespace Arrowgene.MonsterHunterOnline.UI.Views;
 
 public partial class MainWindow : Window
 {
-    private string? _tempExtractDir;
     private IIPSUnifiedArchive? _unifiedArchive;
-
-    private static readonly string[] ExtractPrefixes =
-    [
-        "common/staticdata/",
-        "common\\staticdata\\",
-        "libs/ui/flashassets/images/icon/",
-        "libs\\ui\\flashassets\\images\\icon\\",
-        "libs/ui/flashassets/images/illustratebook/monstericon/",
-        "libs\\ui\\flashassets\\images\\illustratebook\\monstericon\\",
-        "levels/",
-        "levels\\",
-    ];
 
     public MainWindow()
     {
@@ -36,56 +25,72 @@ public partial class MainWindow : Window
 
     private MainWindowViewModel Vm => (MainWindowViewModel)DataContext!;
 
-    // ── Open Directory ──
+    // ── Single Load button ──
 
-    private async void OpenDirectoryClick(object? sender, RoutedEventArgs e)
+    private async void LoadClick(object? sender, RoutedEventArgs e)
     {
-        string? path = await PickFolderAsync("Select MHO client files directory");
+        // Let user pick: folder, .lst file, or single .ifs archive
+        // Use a file picker that accepts all three — on macOS/Linux the folder picker is separate
+        // Strategy: show file picker first (for .lst and .ifs), with a "folder" option
+
+        // Try folder picker first via a simple choice: pick file or folder
+        // For simplicity, use file picker that accepts .lst, .ifs, and all files
+        // If user picks a directory (via folder selection), treat as directory mode
+        // If user picks .lst, treat as IIPS list mode
+        // If user picks .ifs, treat as single archive mode
+
+        string? path = await PickFileOrFolderAsync();
         if (string.IsNullOrEmpty(path)) return;
 
-        if (!Directory.Exists(path))
+        if (Directory.Exists(path))
         {
-            Vm.StatusText = $"Directory not found: {path}";
-            return;
+            await LoadFromDirectoryAsync(path);
         }
-
-        CleanupPreviousSource();
-        Vm.IsArchiveOnlyMode = false;
-        Vm.DataSourceLabel = $"Directory: {path}";
-        await LoadAllViewersAsync(path);
+        else if (path.EndsWith(".lst", StringComparison.OrdinalIgnoreCase))
+        {
+            await LoadFromIIPSListAsync(path);
+        }
+        else if (path.EndsWith(".ifs", StringComparison.OrdinalIgnoreCase))
+        {
+            await LoadFromSingleArchiveAsync(path);
+        }
+        else
+        {
+            Vm.StatusText = $"Unsupported file type: {Path.GetFileName(path)}";
+        }
     }
 
-    // ── Open IIPS List (.lst) ──
+    // ── Directory mode ──
 
-    private async void OpenIIPSListClick(object? sender, RoutedEventArgs e)
+    private async Task LoadFromDirectoryAsync(string dirPath)
     {
-        string? path = await PickFileAsync("Open IIPS file list");
-        if (string.IsNullOrEmpty(path)) return;
+        CleanupPreviousSource();
+        IFileProvider provider = new DirectoryFileProvider(dirPath);
+        Vm.DataSourceLabel = $"Directory: {dirPath}";
+        await LoadAllViewersAsync(provider);
+    }
 
+    // ── IIPS list mode ──
+
+    private async Task LoadFromIIPSListAsync(string lstPath)
+    {
         CleanupPreviousSource();
         Vm.IsLoading = true;
-        Vm.IsArchiveOnlyMode = false;
+        Vm.HasDataSource = false;
         Vm.StatusText = "Opening IIPS file list...";
 
         try
         {
-            // Open unified archive
-            _unifiedArchive = await Task.Run(() => IIPSUnifiedArchive.Open(path));
-
-            Vm.StatusText = $"Extracting data from {_unifiedArchive.LoadedArchives.Count} archives...";
+            _unifiedArchive = await Task.Run(() => IIPSUnifiedArchive.Open(lstPath));
 
             // Feed to IIPS explorer
             if (IIPSExplorer.DataContext is IIPSArchiveFileExplorerViewModel explorerVm)
-                explorerVm.TryOpenFileList(path);
+                explorerVm.TryOpenFileList(lstPath);
 
-            // Extract needed files to temp
-            string tempDir = await ExtractToTempAsync(_unifiedArchive);
-            _tempExtractDir = tempDir;
+            IFileProvider provider = new IIPSFileProvider(_unifiedArchive);
+            Vm.DataSourceLabel = $"IIPS List: {Path.GetFileName(lstPath)} ({_unifiedArchive.LoadedArchives.Count} archives, {_unifiedArchive.MergedEntries.Count} entries)";
 
-            Vm.DataSourceLabel = $"IIPS List: {Path.GetFileName(path)} ({_unifiedArchive.LoadedArchives.Count} archives, {_unifiedArchive.MergedEntries.Count} entries)";
-
-            // Load all viewers from temp dir
-            await LoadAllViewersAsync(tempDir);
+            await LoadAllViewersAsync(provider);
         }
         catch (Exception ex)
         {
@@ -94,32 +99,60 @@ public partial class MainWindow : Window
         }
     }
 
-    // ── Open single .ifs archive (archive-only mode) ──
+    // ── Single archive mode ──
 
-    private async void OpenSingleArchiveClick(object? sender, RoutedEventArgs e)
+    private async Task LoadFromSingleArchiveAsync(string ifsPath)
     {
-        string? path = await PickFileAsync("Open IIPS archive");
-        if (string.IsNullOrEmpty(path)) return;
-
         CleanupPreviousSource();
+        Vm.IsLoading = true;
+        Vm.StatusText = "Opening archive...";
 
-        if (IIPSExplorer.DataContext is IIPSArchiveFileExplorerViewModel explorerVm)
+        try
         {
-            explorerVm.TryOpenArchive(path);
+            IIPSArchive archive = await Task.Run(() => IIPSArchive.Open(ifsPath));
+
+            // Feed to IIPS explorer
+            if (IIPSExplorer.DataContext is IIPSArchiveFileExplorerViewModel explorerVm)
+                explorerVm.TryOpenArchive(ifsPath);
+
+            // Try to load data from this single archive too
+            // Create a mini unified archive wrapper for the file provider
+            _unifiedArchive = null; // single archive, managed by explorer
+            IFileProvider provider = CreateSingleArchiveProvider(archive);
+
+            // Check if this archive has useful data
+            bool hasStaticData = provider.Exists("common/staticdata/itemdata.dat") ||
+                                 provider.Exists("common/staticdata/monsterdata.dat");
+
+            Vm.DataSourceLabel = $"Archive: {Path.GetFileName(ifsPath)} ({archive.Entries.Count} entries)";
+
+            if (hasStaticData)
+            {
+                await LoadAllViewersAsync(provider);
+            }
+            else
+            {
+                Vm.HasDataSource = false;
+                Vm.StatusText = "Single archive mode — data viewer tabs disabled (no static data found).";
+                Vm.IsLoading = false;
+                MainTabs.SelectedIndex = 0;
+            }
         }
+        catch (Exception ex)
+        {
+            Vm.StatusText = $"Error: {ex.Message}";
+            Vm.IsLoading = false;
+        }
+    }
 
-        Vm.IsArchiveOnlyMode = true;
-        Vm.HasDataSource = false;
-        Vm.DataSourceLabel = $"Archive: {Path.GetFileName(path)}";
-        Vm.StatusText = "Single archive mode — data viewer tabs are disabled.";
-
-        // Switch to the IIPS explorer tab
-        MainTabs.SelectedIndex = 0;
+    private static IFileProvider CreateSingleArchiveProvider(IIPSArchive archive)
+    {
+        return new SingleArchiveFileProvider(archive);
     }
 
     // ── Load all viewers ──
 
-    private async Task LoadAllViewersAsync(string clientFilesRoot)
+    private async Task LoadAllViewersAsync(IFileProvider provider)
     {
         Vm.IsLoading = true;
         Vm.HasDataSource = false;
@@ -130,20 +163,20 @@ public partial class MainWindow : Window
             List<Task> tasks = [];
 
             if (ItemControl.DataContext is ItemViewerViewModel itemVm)
-                tasks.Add(itemVm.LoadAsync(clientFilesRoot));
+                tasks.Add(itemVm.LoadAsync(provider));
             if (EntityControl.DataContext is EntityViewerViewModel entityVm)
-                tasks.Add(entityVm.LoadAsync(clientFilesRoot));
+                tasks.Add(entityVm.LoadAsync(provider));
             if (CraftControl.DataContext is CraftViewerViewModel craftVm)
-                tasks.Add(craftVm.LoadAsync(clientFilesRoot));
+                tasks.Add(craftVm.LoadAsync(provider));
             if (QuestControl.DataContext is QuestViewerViewModel questVm)
-                tasks.Add(questVm.LoadAsync(clientFilesRoot));
+                tasks.Add(questVm.LoadAsync(provider));
             if (LevelMapControl.DataContext is LevelMapViewerViewModel levelVm)
-                tasks.Add(levelVm.LoadClientFilesAsync(clientFilesRoot));
+                tasks.Add(levelVm.LoadClientFilesAsync(provider));
 
             await Task.WhenAll(tasks);
 
             Vm.HasDataSource = true;
-            Vm.StatusText = $"All data loaded from {clientFilesRoot}";
+            Vm.StatusText = "All data loaded.";
         }
         catch (Exception ex)
         {
@@ -155,72 +188,9 @@ public partial class MainWindow : Window
         }
     }
 
-    // ── IIPS extraction ──
-
-    private static async Task<string> ExtractToTempAsync(IIPSUnifiedArchive archive)
-    {
-        string tempDir = Path.Combine(Path.GetTempPath(), "MHOTools", Guid.NewGuid().ToString("N")[..8]);
-
-        await Task.Run(() =>
-        {
-            int count = 0;
-            foreach (IIPSArchiveEntry entry in archive.MergedEntries)
-            {
-                if (!entry.Exists || entry.Length == 0 || string.IsNullOrEmpty(entry.ArchivePath))
-                    continue;
-
-                string archivePath = entry.ArchivePath!;
-                bool match = false;
-                foreach (string prefix in ExtractPrefixes)
-                {
-                    if (archivePath.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
-                    {
-                        match = true;
-                        break;
-                    }
-                }
-
-                if (!match) continue;
-
-                string outputPath = Path.Combine(tempDir, archivePath.Replace('\\', Path.DirectorySeparatorChar));
-                string? dir = Path.GetDirectoryName(outputPath);
-                if (!string.IsNullOrEmpty(dir))
-                    Directory.CreateDirectory(dir);
-
-                try
-                {
-                    File.WriteAllBytes(outputPath, entry.ReadAllBytes());
-                    count++;
-                }
-                catch
-                {
-                    // Skip files that fail to extract
-                }
-            }
-        });
-
-        return tempDir;
-    }
-
     // ── Cleanup ──
 
     private void CleanupPreviousSource()
-    {
-        CleanupTempDir();
-        CleanupUnifiedArchive();
-    }
-
-    private void CleanupTempDir()
-    {
-        if (_tempExtractDir != null && Directory.Exists(_tempExtractDir))
-        {
-            try { Directory.Delete(_tempExtractDir, true); }
-            catch { /* best effort */ }
-            _tempExtractDir = null;
-        }
-    }
-
-    private void CleanupUnifiedArchive()
     {
         _unifiedArchive?.Dispose();
         _unifiedArchive = null;
@@ -232,37 +202,106 @@ public partial class MainWindow : Window
         base.OnClosing(e);
     }
 
-    // ── File pickers ──
+    // ── File picker ──
 
-    private async Task<string?> PickFileAsync(string title)
+    private async Task<string?> PickFileOrFolderAsync()
     {
         if (OperatingSystem.IsMacOS())
         {
-            return await MacNativePicker.PickFileAsync(title);
+            // macOS native picker supports selecting both files and folders
+            return await MacNativePicker.PickFileOrFolderAsync("Select data source (directory, .lst, or .ifs)");
         }
 
+        // Non-macOS: show file picker with option to pick folders
         TopLevel? topLevel = TopLevel.GetTopLevel(this);
         if (topLevel?.StorageProvider == null) return null;
 
+        // Try file picker first
         IReadOnlyList<IStorageFile> files = await topLevel.StorageProvider.OpenFilePickerAsync(
-            new FilePickerOpenOptions { Title = title, AllowMultiple = false });
+            new FilePickerOpenOptions
+            {
+                Title = "Select data source (.lst, .ifs, or directory)",
+                AllowMultiple = false,
+                FileTypeFilter =
+                [
+                    new FilePickerFileType("IIPS Files") { Patterns = ["*.lst", "*.ifs"] },
+                    new FilePickerFileType("All Files") { Patterns = ["*"] },
+                ],
+            });
 
-        return files.Count == 0 ? null : files[0].TryGetLocalPath();
-    }
+        if (files.Count > 0)
+            return files[0].TryGetLocalPath();
 
-    private async Task<string?> PickFolderAsync(string title)
-    {
-        if (OperatingSystem.IsMacOS())
-        {
-            return await MacNativePicker.PickFolderAsync(title);
-        }
-
-        TopLevel? topLevel = TopLevel.GetTopLevel(this);
-        if (topLevel?.StorageProvider == null) return null;
-
+        // If no file selected, try folder picker
         IReadOnlyList<IStorageFolder> folders = await topLevel.StorageProvider.OpenFolderPickerAsync(
-            new FolderPickerOpenOptions { Title = title, AllowMultiple = false });
+            new FolderPickerOpenOptions { Title = "Select MHO client files directory", AllowMultiple = false });
 
         return folders.Count == 0 ? null : folders[0].TryGetLocalPath();
     }
+}
+
+/// <summary>
+/// IFileProvider backed by a single IIPSArchive (not unified).
+/// </summary>
+file sealed class SingleArchiveFileProvider : IFileProvider
+{
+    private readonly IIPSArchive _archive;
+    private readonly Dictionary<string, IIPSArchiveEntry> _lookup;
+
+    public SingleArchiveFileProvider(IIPSArchive archive)
+    {
+        _archive = archive;
+        _lookup = new Dictionary<string, IIPSArchiveEntry>(StringComparer.OrdinalIgnoreCase);
+        foreach (IIPSArchiveEntry entry in archive.Entries)
+        {
+            if (entry.Exists && !string.IsNullOrEmpty(entry.ArchivePath))
+                _lookup[Normalize(entry.ArchivePath!)] = entry;
+        }
+    }
+
+    public bool Exists(string relativePath) => _lookup.ContainsKey(Normalize(relativePath));
+
+    public byte[] ReadAllBytes(string relativePath)
+    {
+        if (_lookup.TryGetValue(Normalize(relativePath), out var entry))
+            return entry.ReadAllBytes();
+        throw new FileNotFoundException($"Entry not found: {relativePath}");
+    }
+
+    public Stream OpenRead(string relativePath) => new MemoryStream(ReadAllBytes(relativePath), writable: false);
+
+    public IEnumerable<string> EnumerateFiles(string relativeDir, string pattern)
+    {
+        string prefix = Normalize(relativeDir);
+        if (!prefix.EndsWith('/')) prefix += '/';
+        string ext = Path.GetExtension(pattern);
+        string namePrefix = pattern.Contains('*') ? pattern[..pattern.IndexOf('*')] : pattern;
+
+        return _lookup.Keys.Where(k =>
+        {
+            if (!k.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)) return false;
+            string remainder = k[prefix.Length..];
+            if (remainder.Contains('/')) return false;
+            if (!string.IsNullOrEmpty(namePrefix) && !remainder.StartsWith(namePrefix, StringComparison.OrdinalIgnoreCase)) return false;
+            if (!string.IsNullOrEmpty(ext) && !remainder.EndsWith(ext, StringComparison.OrdinalIgnoreCase)) return false;
+            return true;
+        });
+    }
+
+    public IEnumerable<string> EnumerateDirectories(string relativeDir)
+    {
+        string prefix = Normalize(relativeDir);
+        if (!prefix.EndsWith('/')) prefix += '/';
+        HashSet<string> dirs = new(StringComparer.OrdinalIgnoreCase);
+        foreach (string key in _lookup.Keys)
+        {
+            if (!key.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)) continue;
+            string remainder = key[prefix.Length..];
+            int sep = remainder.IndexOf('/');
+            if (sep > 0) dirs.Add(prefix + remainder[..sep]);
+        }
+        return dirs;
+    }
+
+    private static string Normalize(string path) => path.Replace('\\', '/');
 }

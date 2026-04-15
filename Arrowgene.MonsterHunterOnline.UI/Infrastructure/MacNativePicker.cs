@@ -20,6 +20,19 @@ internal static class MacNativePicker
             "POSIX path of selectedItem");
     }
 
+    public static Task<string?> PickFileOrFolderAsync(string prompt)
+    {
+        // AppleScript dialog with buttons for File or Folder
+        return RunAppleScriptAsync(
+            $"set choice to button returned of (display dialog {ToAppleScriptString(prompt)} buttons {{\"Cancel\", \"Folder\", \"File\"}} default button \"Folder\")",
+            "if choice is \"File\" then",
+            $"  set selectedItem to choose file with prompt {ToAppleScriptString(prompt)}",
+            "else",
+            $"  set selectedItem to choose folder with prompt {ToAppleScriptString(prompt)}",
+            "end if",
+            "POSIX path of selectedItem");
+    }
+
     private static async Task<string?> RunAppleScriptAsync(params string[] statements)
     {
         ProcessStartInfo startInfo = new ProcessStartInfo("/usr/bin/osascript")

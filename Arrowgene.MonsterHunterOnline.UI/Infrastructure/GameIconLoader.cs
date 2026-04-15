@@ -1,43 +1,37 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using Arrowgene.MonsterHunterOnline.ClientTools.FileProvider;
 using Avalonia.Media.Imaging;
 
 namespace Arrowgene.MonsterHunterOnline.UI.Infrastructure;
 
 /// <summary>
-/// Loads game icons from MHO client files with caching.
+/// Loads game icons from an IFileProvider with caching.
 /// </summary>
 public sealed class GameIconLoader
 {
     private readonly Dictionary<string, Bitmap?> _cache = [];
-
-    // Populated after Initialize()
-    private string _itemIconDir = string.Empty;
-    private string _monsterIconDir = string.Empty;
+    private IFileProvider? _provider;
 
     // Monster icons are named {id}_{name}.png — build a lookup by ID
     private readonly Dictionary<int, string> _monsterIconPaths = [];
 
-    public void Initialize(string clientFilesRoot)
+    public void Initialize(IFileProvider provider)
     {
         _cache.Clear();
         _monsterIconPaths.Clear();
-
-        _itemIconDir = Path.Combine(clientFilesRoot, "libs", "ui", "flashassets", "images", "icon");
-        _monsterIconDir = Path.Combine(clientFilesRoot, "libs", "ui", "flashassets", "images", "illustratebook", "monstericon");
+        _provider = provider;
 
         // Scan monster icon directory and index by ID prefix
-        if (Directory.Exists(_monsterIconDir))
+        foreach (string file in provider.EnumerateFiles("libs/ui/flashassets/images/illustratebook/monstericon", "*.png"))
         {
-            foreach (string file in Directory.GetFiles(_monsterIconDir, "*.png"))
+            string name = Path.GetFileNameWithoutExtension(file);
+            int sep = name.IndexOf('_');
+            if (sep > 0 && int.TryParse(name.AsSpan(0, sep), out int id))
             {
-                string name = Path.GetFileNameWithoutExtension(file);
-                int sep = name.IndexOf('_');
-                if (sep > 0 && int.TryParse(name.AsSpan(0, sep), out int id))
-                {
-                    _monsterIconPaths[id] = file;
-                }
+                _monsterIconPaths[id] = file;
             }
         }
     }
@@ -47,15 +41,15 @@ public sealed class GameIconLoader
     /// </summary>
     public Bitmap? LoadItemIcon(string? iconKey)
     {
-        if (string.IsNullOrEmpty(iconKey) || string.IsNullOrEmpty(_itemIconDir))
+        if (string.IsNullOrEmpty(iconKey) || _provider == null)
             return null;
 
         string cacheKey = $"item:{iconKey}";
         if (_cache.TryGetValue(cacheKey, out var cached))
             return cached;
 
-        string path = Path.Combine(_itemIconDir, $"{iconKey}.png");
-        Bitmap? bmp = LoadBitmap(path);
+        string rel = $"libs/ui/flashassets/images/icon/{iconKey}.png";
+        Bitmap? bmp = LoadBitmap(rel);
         _cache[cacheKey] = bmp;
         return bmp;
     }
@@ -65,7 +59,7 @@ public sealed class GameIconLoader
     /// </summary>
     public Bitmap? LoadMonsterIcon(int monsterId)
     {
-        if (monsterId == 0)
+        if (monsterId == 0 || _provider == null)
             return null;
 
         string cacheKey = $"mon:{monsterId}";
@@ -73,17 +67,21 @@ public sealed class GameIconLoader
             return cached;
 
         Bitmap? bmp = null;
-        if (_monsterIconPaths.TryGetValue(monsterId, out string? path))
-            bmp = LoadBitmap(path);
+        if (_monsterIconPaths.TryGetValue(monsterId, out string? rel))
+            bmp = LoadBitmap(rel);
 
         _cache[cacheKey] = bmp;
         return bmp;
     }
 
-    private static Bitmap? LoadBitmap(string path)
+    private Bitmap? LoadBitmap(string relativePath)
     {
-        if (!File.Exists(path)) return null;
-        try { return new Bitmap(path); }
+        if (_provider == null || !_provider.Exists(relativePath)) return null;
+        try
+        {
+            using Stream stream = _provider.OpenRead(relativePath);
+            return new Bitmap(stream);
+        }
         catch { return null; }
     }
 }

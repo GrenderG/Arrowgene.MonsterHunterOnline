@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
+using Arrowgene.MonsterHunterOnline.ClientTools.FileProvider;
 using Arrowgene.MonsterHunterOnline.ClientTools.Quest;
 using Arrowgene.MonsterHunterOnline.UI.ViewModels;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -483,7 +484,7 @@ public sealed partial class QuestViewerViewModel : ViewModelBase
         StatusText = $"Showing {Quests.Count} of {_allQuests.Count} quests";
     }
 
-    public async Task LoadAsync(string path)
+    public async Task LoadAsync(IFileProvider provider)
     {
         IsLoading = true;
         StatusText = "Loading quest data...";
@@ -497,7 +498,7 @@ public sealed partial class QuestViewerViewModel : ViewModelBase
 
         try
         {
-            _database = await Task.Run(() => _loader.Load(path));
+            _database = await Task.Run(() => _loader.Load(provider));
 
             BuildPrereqMaps();
 

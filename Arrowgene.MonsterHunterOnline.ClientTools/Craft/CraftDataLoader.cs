@@ -1,8 +1,8 @@
 using System;
 using System.Globalization;
-using System.IO;
 using Arrowgene.Logging;
 using Arrowgene.MonsterHunterOnline.ClientTools.Dat;
+using Arrowgene.MonsterHunterOnline.ClientTools.FileProvider;
 
 namespace Arrowgene.MonsterHunterOnline.ClientTools.Craft;
 
@@ -10,24 +10,17 @@ public sealed class CraftDataLoader
 {
     private static readonly ILogger Logger = LogProvider.Logger(typeof(CraftDataLoader));
 
-    public CraftDatabase Load(string clientFilesRoot)
+    public CraftDatabase Load(IFileProvider provider)
     {
-        string staticDir = Path.Combine(clientFilesRoot, "common", "staticdata");
-        if (!Directory.Exists(staticDir))
-        {
-            Logger.Error($"Static data directory not found: {staticDir}");
-            return new CraftDatabase();
-        }
-
         CraftDatabase db = new();
-        LoadItemLookups(db, staticDir);
-        LoadCraftData(db, Path.Combine(staticDir, "craftdata.dat"));
+        LoadItemLookups(db, provider);
+        LoadCraftData(db, provider);
 
         Logger.Info($"Loaded {db.Recipes.Count} recipes, {db.ItemNames.Count} item names, {db.ItemIcons.Count} icons");
         return db;
     }
 
-    private void LoadItemLookups(CraftDatabase db, string staticDir)
+    private void LoadItemLookups(CraftDatabase db, IFileProvider provider)
     {
         string[] itemFiles =
         [
@@ -40,12 +33,12 @@ public sealed class CraftDataLoader
 
         foreach (string fileName in itemFiles)
         {
-            string path = Path.Combine(staticDir, fileName);
-            if (!File.Exists(path)) continue;
+            string rel = $"common/staticdata/{fileName}";
+            if (!provider.Exists(rel)) continue;
             try
             {
                 DatFile dat = new();
-                dat.Open(path);
+                dat.Open(provider.ReadAllBytes(rel));
                 foreach (TsvSheet sheet in dat.Sheets)
                 {
                     if (sheet.Table == null || sheet.TableHead == null) continue;
@@ -77,13 +70,14 @@ public sealed class CraftDataLoader
         }
     }
 
-    private void LoadCraftData(CraftDatabase db, string path)
+    private void LoadCraftData(CraftDatabase db, IFileProvider provider)
     {
-        if (!File.Exists(path)) return;
+        string rel = "common/staticdata/craftdata.dat";
+        if (!provider.Exists(rel)) return;
         try
         {
             DatFile dat = new();
-            dat.Open(path);
+            dat.Open(provider.ReadAllBytes(rel));
 
             foreach (TsvSheet sheet in dat.Sheets)
             {
@@ -99,7 +93,6 @@ public sealed class CraftDataLoader
                 int rangeCol = FindCol(sheet.TableHead, "远近类型");
                 int goldCol = FindCol(sheet.TableHead, "消耗金钱");
 
-                // Output columns (up to 2 outputs + byproduct)
                 int out1IdCol = FindCol(sheet.TableHead, "生成物品1ID");
                 int out1CntCol = FindCol(sheet.TableHead, "生成数量1");
                 int out1RateCol = FindCol(sheet.TableHead, "生成率1");
@@ -110,7 +103,6 @@ public sealed class CraftDataLoader
                 int byCntCol = FindCol(sheet.TableHead, "副产数量");
                 int byRateCol = FindCol(sheet.TableHead, "副产生成率");
 
-                // Material columns (up to 10)
                 int[] matIdCols = new int[10];
                 int[] matCntCols = new int[10];
                 for (int i = 0; i < 10; i++)
@@ -140,7 +132,6 @@ public sealed class CraftDataLoader
                         SourceSheet = sheet.Name ?? "",
                     };
 
-                    // Outputs
                     int o1 = GetInt(row, out1IdCol);
                     if (o1 > 0) recipe.Outputs.Add(new CraftOutput { ItemId = o1, Count = GetInt(row, out1CntCol), Rate = GetInt(row, out1RateCol) });
                     int o2 = GetInt(row, out2IdCol);
@@ -148,7 +139,6 @@ public sealed class CraftDataLoader
                     int by = GetInt(row, byIdCol);
                     if (by > 0) recipe.Byproduct = new CraftOutput { ItemId = by, Count = GetInt(row, byCntCol), Rate = GetInt(row, byRateCol) };
 
-                    // Materials
                     for (int i = 0; i < 10; i++)
                     {
                         int matId = GetInt(row, matIdCols[i]);
