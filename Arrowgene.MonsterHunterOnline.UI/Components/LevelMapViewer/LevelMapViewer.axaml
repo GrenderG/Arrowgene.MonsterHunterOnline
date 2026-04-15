@@ -51,39 +51,6 @@
     <Border Background="#F2F1EC">
         <DockPanel LastChildFill="True">
 
-            <!-- Top bar -->
-            <Border DockPanel.Dock="Top"
-                    Background="#111827"
-                    Padding="16,12">
-                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
-                    <StackPanel Spacing="4" VerticalAlignment="Center">
-                        <TextBlock Text="Level Map Viewer"
-                                   FontSize="18"
-                                   FontWeight="SemiBold"
-                                   Foreground="#F9FAFB" />
-                    </StackPanel>
-                    <StackPanel Grid.Column="1"
-                                Orientation="Horizontal"
-                                VerticalAlignment="Center"
-                                Spacing="8">
-                        <TextBox x:Name="ClientFilesPathBox"
-                                 Text="{Binding ClientFilesPath, Mode=TwoWay}"
-                                 Watermark="Path to MHO client files directory"
-                                 Width="500"
-                                 MinHeight="34"
-                                 Padding="10,7"
-                                 FontSize="12"
-                                 Foreground="#F9FAFB"
-                                 Background="#1F2937"
-                                 BorderBrush="#374151"
-                                 CaretBrush="#F9FAFB" />
-                        <Button Classes="toolbar-text"
-                                Content="Load"
-                                Click="LoadClientFilesClick" />
-                    </StackPanel>
-                </Grid>
-            </Border>
-
             <!-- Filter bar -->
             <Border DockPanel.Dock="Top"
                     Background="#E8E5DE"
@@ -109,6 +76,12 @@
                     <CheckBox Classes="filter-check"
                               Content="Regions"
                               IsChecked="{Binding ShowRegions}" />
+
+                    <Border Width="1" Height="20" Background="#374151" VerticalAlignment="Center" />
+
+                    <CheckBox Classes="filter-check"
+                              Content="Minimap"
+                              IsChecked="{Binding UseMinimap}" />
 
                     <Border Width="1" Height="20" Background="#374151" VerticalAlignment="Center" />
 
@@ -200,7 +173,8 @@
                                      ShowMonsters="{Binding ShowMonsters}"
                                      ShowResources="{Binding ShowResources}"
                                      ShowPlayerSpawns="{Binding ShowPlayerSpawns}"
-                                     ShowRegions="{Binding ShowRegions}" />
+                                     ShowRegions="{Binding ShowRegions}"
+                                     UseMinimap="{Binding UseMinimap}" />
                 </Border>
             </Grid>
         </DockPanel>

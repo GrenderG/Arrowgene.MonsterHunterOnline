@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Arrowgene.MonsterHunterOnline.ClientTools.Quest;
 using Arrowgene.MonsterHunterOnline.UI.ViewModels;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 
 namespace Arrowgene.MonsterHunterOnline.UI.Components;
 
@@ -57,17 +58,44 @@ public sealed partial class QuestListItemViewModel : ViewModelBase
     };
 }
 
+/// <summary>One node in the quest chain graph.</summary>
+public sealed partial class QuestChainNodeViewModel : ViewModelBase
+{
+    public int Id { get; }
+    public string Name { get; }
+    public string TypeLabel { get; }
+    public string Subtitle { get; }
+    public bool IsSelected { get; }
+    public bool ShowConnectorAbove { get; }
+
+    public QuestChainNodeViewModel(QuestDef quest, bool isSelected, bool showConnectorAbove)
+    {
+        Id = quest.Id;
+        Name = quest.Name;
+        TypeLabel = QuestListItemViewModel.GetTypeLabel(quest.Type);
+        IsSelected = isSelected;
+        ShowConnectorAbove = showConnectorAbove;
+
+        List<string> parts = [];
+        if (quest.Star > 0) parts.Add($"{quest.Star} star");
+        if (!string.IsNullOrEmpty(TypeLabel)) parts.Add(TypeLabel);
+        if (quest.Contents.Count > 0) parts.Add($"{quest.Contents.Count} obj");
+        Subtitle = parts.Count > 0 ? string.Join(" | ", parts) : "";
+    }
+}
+
 public sealed partial class QuestViewerViewModel : ViewModelBase
 {
     private readonly QuestDataLoader _loader = new();
     private QuestDatabase? _database;
     private List<QuestListItemViewModel> _allQuests = [];
 
-    [ObservableProperty]
-    private string _clientFilesPath = string.Empty;
+    // Prerequisite graph: quest -> its prerequisites, quest -> quests that depend on it
+    private Dictionary<int, HashSet<int>> _prereqOf = [];
+    private Dictionary<int, HashSet<int>> _dependentsOf = [];
 
     [ObservableProperty]
-    private string _statusText = "Enter the MHO client files directory path and click Load.";
+    private string _statusText = "Open a data source from the toolbar.";
 
     [ObservableProperty]
     private bool _isLoading;
@@ -84,13 +112,21 @@ public sealed partial class QuestViewerViewModel : ViewModelBase
     [ObservableProperty]
     private string _selectedTypeFilter = "All";
 
+    [ObservableProperty]
+    private bool _isGraphView;
+
     public ObservableCollection<QuestListItemViewModel> Quests { get; } = [];
     public ObservableCollection<string> SourceFilters { get; } = ["All"];
     public ObservableCollection<string> TypeFilters { get; } = ["All"];
 
     public bool HasQuests => Quests.Count > 0;
 
-    // Detail panel properties
+    // ── Chain graph ──
+    public ObservableCollection<QuestChainNodeViewModel> ChainNodes { get; } = [];
+    public bool HasChain => ChainNodes.Count > 1;
+    public string ChainSummary => HasChain ? $"{ChainNodes.Count} quests in chain" : "No chain (standalone quest)";
+
+    // ── Detail panel properties ──
     public string DetailName => _selectedQuest?.Data.Name ?? string.Empty;
     public string DetailNote => _selectedQuest?.Data.Note ?? string.Empty;
     public string DetailDescription => StripHtml(_selectedQuest?.Data.Description ?? string.Empty);
@@ -128,7 +164,6 @@ public sealed partial class QuestViewerViewModel : ViewModelBase
     public string DetailSubmitNpcDisplay => FormatNpcDisplay(_selectedQuest?.Data.SubmitNpc ?? 0);
     public string DetailRelatedNpcDisplay => FormatNpcDisplay(_selectedQuest?.Data.RelatedNpc ?? 0);
 
-    // Pre-quest name lookup
     public string DetailPreTaskDisplay
     {
         get
@@ -140,7 +175,6 @@ public sealed partial class QuestViewerViewModel : ViewModelBase
         }
     }
 
-    // Group name lookup
     public string DetailGroupName
     {
         get
@@ -161,7 +195,6 @@ public sealed partial class QuestViewerViewModel : ViewModelBase
         }
     }
 
-    // Chapter lookup (find chapter that contains this quest's series)
     public string DetailChapterName
     {
         get
@@ -186,7 +219,6 @@ public sealed partial class QuestViewerViewModel : ViewModelBase
         }
     }
 
-    // Library lookup (find library whose groups contain this quest's group)
     public string DetailLibraryName
     {
         get
@@ -202,9 +234,26 @@ public sealed partial class QuestViewerViewModel : ViewModelBase
     public bool HasPreRewards => DetailPreRewards.Count > 0;
     public bool HasLoot => DetailLoot.Count > 0;
 
+    // ── Commands ──
+
+    [RelayCommand]
+    private void ToggleGraphView() => IsGraphView = !IsGraphView;
+
+    [RelayCommand]
+    private void NavigateToChainNode(int questId)
+    {
+        var target = Quests.FirstOrDefault(q => q.Id == questId)
+                  ?? _allQuests.FirstOrDefault(q => q.Id == questId);
+        if (target != null)
+            SelectedQuest = target;
+    }
+
+    // ── Change handlers ──
+
     partial void OnSelectedQuestChanged(QuestListItemViewModel? value)
     {
         UpdateDetailPanel();
+        BuildChain();
     }
 
     partial void OnFilterTextChanged(string value) => ApplyFilter();
@@ -257,26 +306,17 @@ public sealed partial class QuestViewerViewModel : ViewModelBase
         if (_selectedQuest == null) return;
 
         foreach (var c in _selectedQuest.Data.Contents)
-        {
             DetailContents.Add(FormatContent(c));
-        }
 
         foreach (var r in _selectedQuest.Data.Rewards)
-        {
             DetailRewards.Add(FormatReward(r));
-        }
 
         foreach (var r in _selectedQuest.Data.PreRewards)
-        {
             DetailPreRewards.Add(FormatReward(r));
-        }
 
         foreach (var ch in _selectedQuest.Data.AcceptChecks)
-        {
             DetailChecks.Add(FormatCheck(ch));
-        }
 
-        // Loot entries for this quest
         if (_database != null)
         {
             foreach (var loot in _database.LootEntries.Where(l => l.QuestId == _selectedQuest.Data.Id))
@@ -294,6 +334,122 @@ public sealed partial class QuestViewerViewModel : ViewModelBase
         OnPropertyChanged(nameof(HasPreRewards));
         OnPropertyChanged(nameof(HasLoot));
     }
+
+    // ── Quest chain graph ──
+
+    private void BuildPrereqMaps()
+    {
+        _prereqOf = [];
+        _dependentsOf = [];
+
+        if (_database == null) return;
+
+        foreach (var quest in _database.Quests)
+        {
+            foreach (var check in quest.AcceptChecks)
+            {
+                if (check.CheckType != "TaskPreTaskCheckDef") continue;
+                foreach (var pt in check.PreTasks)
+                {
+                    if (pt.Task <= 0) continue;
+
+                    if (!_prereqOf.TryGetValue(quest.Id, out var prereqs))
+                    {
+                        prereqs = [];
+                        _prereqOf[quest.Id] = prereqs;
+                    }
+                    prereqs.Add(pt.Task);
+
+                    if (!_dependentsOf.TryGetValue(pt.Task, out var deps))
+                    {
+                        deps = [];
+                        _dependentsOf[pt.Task] = deps;
+                    }
+                    deps.Add(quest.Id);
+                }
+            }
+        }
+    }
+
+    private void BuildChain()
+    {
+        ChainNodes.Clear();
+
+        if (_selectedQuest == null || _database == null)
+        {
+            OnPropertyChanged(nameof(HasChain));
+            OnPropertyChanged(nameof(ChainSummary));
+            return;
+        }
+
+        int selectedId = _selectedQuest.Data.Id;
+
+        // Walk backwards to find the root(s) of the chain
+        HashSet<int> visited = [];
+        int root = selectedId;
+        {
+            HashSet<int> seen = [selectedId];
+            Queue<int> backQueue = new();
+            backQueue.Enqueue(selectedId);
+            while (backQueue.Count > 0)
+            {
+                int cur = backQueue.Dequeue();
+                if (_prereqOf.TryGetValue(cur, out var prereqs))
+                {
+                    foreach (int p in prereqs)
+                    {
+                        if (seen.Add(p))
+                        {
+                            backQueue.Enqueue(p);
+                            root = p; // keep updating – last found is the deepest root
+                        }
+                    }
+                }
+            }
+        }
+
+        // BFS forward from root to build ordered chain
+        List<int> ordered = [];
+        {
+            Queue<int> queue = new();
+            queue.Enqueue(root);
+            visited.Add(root);
+            while (queue.Count > 0)
+            {
+                int cur = queue.Dequeue();
+                ordered.Add(cur);
+                if (_dependentsOf.TryGetValue(cur, out var deps))
+                {
+                    foreach (int d in deps.OrderBy(x => x))
+                    {
+                        if (visited.Add(d))
+                            queue.Enqueue(d);
+                    }
+                }
+            }
+        }
+
+        // If the selected quest has no chain connections, show just itself
+        if (ordered.Count <= 1 && !_prereqOf.ContainsKey(selectedId) && !_dependentsOf.ContainsKey(selectedId))
+        {
+            ordered = [selectedId];
+        }
+
+        // Build node view models
+        var questLookup = _database.Quests.ToDictionary(q => q.Id);
+        bool first = true;
+        foreach (int qid in ordered)
+        {
+            if (!questLookup.TryGetValue(qid, out var quest)) continue;
+            ChainNodes.Add(new QuestChainNodeViewModel(quest, qid == selectedId, !first));
+            first = false;
+        }
+
+        OnPropertyChanged(nameof(HasChain));
+        OnPropertyChanged(nameof(ChainSummary));
+    }
+
+    // ── Filter ──
 
     private void ApplyFilter()
     {
@@ -329,7 +485,6 @@ public sealed partial class QuestViewerViewModel : ViewModelBase
 
     public async Task LoadAsync(string path)
     {
-        ClientFilesPath = path;
         IsLoading = true;
         StatusText = "Loading quest data...";
         Quests.Clear();
@@ -343,6 +498,8 @@ public sealed partial class QuestViewerViewModel : ViewModelBase
         try
         {
             _database = await Task.Run(() => _loader.Load(path));
+
+            BuildPrereqMaps();
 
             HashSet<string> sources = [];
             HashSet<string> types = [];
@@ -387,6 +544,8 @@ public sealed partial class QuestViewerViewModel : ViewModelBase
             IsLoading = false;
         }
     }
+
+    // ── Formatting helpers ──
 
     private string FormatNpcDisplay(int npcId)
     {

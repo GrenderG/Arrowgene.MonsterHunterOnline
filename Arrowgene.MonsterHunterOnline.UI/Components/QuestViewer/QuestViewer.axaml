@@ -48,6 +48,12 @@
         <!-- Flag colours -->
         <SolidColorBrush x:Key="FlagOnBg" Color="#DDD9CF" />
         <SolidColorBrush x:Key="FlagOffBg" Color="#EDEAE4" />
+
+        <!-- Chain graph node colours -->
+        <SolidColorBrush x:Key="ChainNodeBg" Color="#FFFFFF" />
+        <SolidColorBrush x:Key="ChainNodeSelectedBg" Color="#E8E5DE" />
+        <SolidColorBrush x:Key="ChainNodeBorder" Color="#D7D3CC" />
+        <SolidColorBrush x:Key="ChainNodeSelectedBorder" Color="#0F172A" />
     </UserControl.Resources>
 
     <UserControl.Styles>
@@ -117,6 +123,26 @@
             <Setter Property="MinHeight" Value="34" />
         </Style>
 
+        <Style Selector="Button.toggle-view">
+            <Setter Property="Padding" Value="12,5" />
+            <Setter Property="MinHeight" Value="0" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Background" Value="{StaticResource BgDark}" />
+            <Setter Property="Foreground" Value="{StaticResource FgOnDark}" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+        <Style Selector="Button.toggle-view /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{StaticResource BgDark}" />
+            <Setter Property="CornerRadius" Value="6" />
+        </Style>
+        <Style Selector="Button.toggle-view:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#1F2937" />
+        </Style>
+        <Style Selector="Button.toggle-view:pressed /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#374151" />
+        </Style>
+
         <!-- ─── Tag row classes (list items) ─── -->
         <Style Selector="Border.tag-objective">
             <Setter Property="Background" Value="{StaticResource TagObjectiveBg}" />
@@ -183,38 +209,6 @@
 
     <Border Background="{StaticResource BgPage}">
         <DockPanel LastChildFill="True">
-
-            <!-- ═══ Top bar ═══ -->
-            <Border DockPanel.Dock="Top"
-                    Background="{StaticResource BgDark}"
-                    Padding="16,12">
-                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
-                    <TextBlock Text="Quest Viewer"
-                               FontSize="18"
-                               FontWeight="SemiBold"
-                               Foreground="{StaticResource FgOnDark}"
-                               VerticalAlignment="Center" />
-                    <StackPanel Grid.Column="1"
-                                Orientation="Horizontal"
-                                VerticalAlignment="Center"
-                                Spacing="8">
-                        <TextBox x:Name="ClientFilesPathBox"
-                                 Text="{Binding ClientFilesPath, Mode=TwoWay}"
-                                 Watermark="Path to MHO client files directory"
-                                 Width="500"
-                                 MinHeight="34"
-                                 Padding="10,7"
-                                 FontSize="12"
-                                 Foreground="{StaticResource FgOnDark}"
-                                 Background="{StaticResource BgInput}"
-                                 BorderBrush="{StaticResource BorderDark}"
-                                 CaretBrush="{StaticResource FgOnDark}" />
-                        <Button Classes="toolbar-text"
-                                Content="Load"
-                                Click="LoadClick" />
-                    </StackPanel>
-                </Grid>
-            </Border>
 
             <!-- ═══ Filter bar ═══ -->
             <Border DockPanel.Dock="Top"
@@ -338,12 +332,46 @@
                               HorizontalAlignment="Stretch"
                               VerticalAlignment="Stretch" />
 
-                <!-- ── Quest detail ── -->
+                <!-- ── Quest detail / graph ── -->
                 <Border Grid.Column="2"
                         Classes="pane"
                         Margin="0,12,12,12"
                         MinHeight="0">
-                    <ScrollViewer IsVisible="{Binding HasSelection}">
+                    <Grid RowDefinitions="Auto,*" IsVisible="{Binding HasSelection}">
+
+                        <!-- View toggle bar -->
+                        <Border Grid.Row="0"
+                                Background="{StaticResource BgSurfaceAlt}"
+                                CornerRadius="8"
+                                Padding="4"
+                                Margin="0,0,0,10">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding DetailName}"
+                                               FontSize="13"
+                                               FontWeight="SemiBold"
+                                               Foreground="{StaticResource FgPrimary}"
+                                               MaxLines="1"
+                                               TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Text="{Binding ChainSummary}"
+                                               FontSize="11"
+                                               Foreground="{StaticResource FgMuted}"
+                                               VerticalAlignment="Center"
+                                               IsVisible="{Binding IsGraphView}" />
+                                </StackPanel>
+                                <Button Grid.Column="1"
+                                        Classes="toggle-view"
+                                        Command="{Binding ToggleGraphViewCommand}">
+                                    <TextBlock Text="{Binding IsGraphView, Converter={x:Static local:QuestViewer.ViewToggleLabelConverter}}"
+                                               FontSize="11"
+                                               FontWeight="SemiBold"
+                                               Foreground="{StaticResource FgOnDark}" />
+                                </Button>
+                            </Grid>
+                        </Border>
+
+                        <!-- ═══ DETAIL VIEW ═══ -->
+                        <ScrollViewer Grid.Row="1" IsVisible="{Binding !IsGraphView}">
                         <StackPanel Spacing="4" Margin="4">
 
                             <!-- Title -->
@@ -564,6 +592,60 @@
 
                         </StackPanel>
                     </ScrollViewer>
+
+                        <!-- ═══ GRAPH VIEW ═══ -->
+                        <ScrollViewer Grid.Row="1" IsVisible="{Binding IsGraphView}">
+                            <ItemsControl ItemsSource="{Binding ChainNodes}" Margin="16,4">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="local:QuestChainNodeViewModel">
+                                        <StackPanel>
+                                            <!-- Connector line above (except first node) -->
+                                            <Border Height="28"
+                                                    Width="2"
+                                                    Background="{StaticResource BorderDefault}"
+                                                    HorizontalAlignment="Center"
+                                                    IsVisible="{Binding ShowConnectorAbove}" />
+
+                                            <!-- Node card -->
+                                            <Button Command="{Binding $parent[ItemsControl].((local:QuestViewerViewModel)DataContext).NavigateToChainNodeCommand}"
+                                                    CommandParameter="{Binding Id}"
+                                                    HorizontalAlignment="Stretch"
+                                                    HorizontalContentAlignment="Stretch"
+                                                    Padding="0"
+                                                    Background="Transparent"
+                                                    BorderThickness="0"
+                                                    Cursor="Hand">
+                                                <Border CornerRadius="8"
+                                                        Padding="14,10"
+                                                        BorderThickness="2"
+                                                        BorderBrush="{Binding IsSelected, Converter={x:Static local:QuestViewer.ChainBorderConverter}}"
+                                                        Background="{Binding IsSelected, Converter={x:Static local:QuestViewer.ChainBgConverter}}">
+                                                    <StackPanel Spacing="2">
+                                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                                            <TextBlock Text="{Binding Id, StringFormat='#{0}'}"
+                                                                       FontSize="11"
+                                                                       Foreground="{StaticResource FgMuted}"
+                                                                       VerticalAlignment="Center" />
+                                                            <TextBlock Text="{Binding Name}"
+                                                                       FontSize="13"
+                                                                       FontWeight="{Binding IsSelected, Converter={x:Static local:QuestViewer.ChainWeightConverter}}"
+                                                                       Foreground="{StaticResource FgPrimary}"
+                                                                       TextWrapping="Wrap" />
+                                                        </StackPanel>
+                                                        <TextBlock Text="{Binding Subtitle}"
+                                                                   FontSize="11"
+                                                                   Foreground="{StaticResource FgMuted}"
+                                                                   IsVisible="{Binding Subtitle, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                                                    </StackPanel>
+                                                </Border>
+                                            </Button>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+
+                    </Grid>
                 </Border>
             </Grid>
         </DockPanel>

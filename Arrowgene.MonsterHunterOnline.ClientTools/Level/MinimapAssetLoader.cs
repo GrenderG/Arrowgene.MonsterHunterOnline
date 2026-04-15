@@ -20,14 +20,28 @@ public sealed class MinimapAssetLoader
     public LevelClientMiniMapAsset? LoadForLevel(string clientFilesRoot, string levelName)
     {
         string? configPath = FindConfigPath(clientFilesRoot, levelName);
-        if (configPath == null)
+        if (configPath != null)
+        {
+            string assetName = Path.GetFileNameWithoutExtension(configPath);
+            string? visualAssetPath = FindVisualAssetPath(clientFilesRoot, assetName);
+            return Load(configPath, levelName, assetName, visualAssetPath);
+        }
+
+        // No config XML — try to load just the FLA art without region mappings.
+        string? flaOnlyPath = FindVisualAssetPath(clientFilesRoot, levelName);
+        if (flaOnlyPath == null)
         {
             return null;
         }
 
-        string assetName = Path.GetFileNameWithoutExtension(configPath);
-        string? visualAssetPath = FindVisualAssetPath(clientFilesRoot, assetName);
-        return Load(configPath, levelName, assetName, visualAssetPath);
+        LevelClientMiniMapAsset asset = new()
+        {
+            LevelName = levelName,
+            AssetName = levelName,
+            VisualAssetPath = flaOnlyPath,
+        };
+        TryLoadVisualMetadata(asset, flaOnlyPath);
+        return asset.BitmapPlacements.Count > 0 || asset.CanvasWidth > 0 ? asset : null;
     }
 
     public string? FindConfigPath(string clientFilesRoot, string levelName)
@@ -67,7 +81,9 @@ public sealed class MinimapAssetLoader
             return swfPath;
         }
 
-        return null;
+        // Fuzzy match: try FLA files first, then SWF.
+        return ResolveBestMatch(Directory.GetFiles(assetDir, "*.fla"), assetName)
+            ?? ResolveBestMatch(Directory.GetFiles(assetDir, "*.swf"), assetName);
     }
 
     public LevelClientMiniMapAsset Load(string minimapConfigPath, string? levelName = null, string? assetName = null,

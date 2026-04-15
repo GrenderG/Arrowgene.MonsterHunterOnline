@@ -41,18 +41,75 @@
         <Style Selector="TabControl#MainTabs > TabItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
             <Setter Property="Foreground" Value="#334155" />
         </Style>
+        <Style Selector="TabControl#MainTabs > TabItem:disabled">
+            <Setter Property="Opacity" Value="0.4" />
+        </Style>
     </Window.Styles>
 
-    <TabControl x:Name="MainTabs">
-        <TabItem Header="IIPS Archive Explorer">
-            <controls:IIPSArchiveFileExplorer />
-        </TabItem>
-        <TabItem Header="Level Map Viewer">
-            <controls:LevelMapViewer />
-        </TabItem>
-        <TabItem Header="Quest Viewer">
-            <controls:QuestViewer />
-        </TabItem>
-    </TabControl>
+    <DockPanel LastChildFill="True">
+
+        <!-- ═══ Shared toolbar ═══ -->
+        <Border DockPanel.Dock="Top"
+                Background="#111827"
+                Padding="16,10">
+            <Grid ColumnDefinitions="Auto,*,Auto">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <Button Content="Open Directory"
+                            Click="OpenDirectoryClick"
+                            Padding="12,6"
+                            MinHeight="34"
+                            IsEnabled="{Binding !IsLoading}" />
+                    <Button Content="Open IIPS List"
+                            Click="OpenIIPSListClick"
+                            Padding="12,6"
+                            MinHeight="34"
+                            IsEnabled="{Binding !IsLoading}" />
+                    <Button Content="Open Archive"
+                            Click="OpenSingleArchiveClick"
+                            Padding="12,6"
+                            MinHeight="34"
+                            IsEnabled="{Binding !IsLoading}" />
+                </StackPanel>
+
+                <TextBlock Grid.Column="1"
+                           Text="{Binding DataSourceLabel}"
+                           Foreground="#94A3B8"
+                           FontSize="12"
+                           VerticalAlignment="Center"
+                           Margin="16,0"
+                           TextTrimming="CharacterEllipsis" />
+
+                <TextBlock Grid.Column="2"
+                           Text="Loading..."
+                           Foreground="#FBBF24"
+                           FontSize="12"
+                           FontWeight="SemiBold"
+                           VerticalAlignment="Center"
+                           IsVisible="{Binding IsLoading}" />
+            </Grid>
+        </Border>
+
+        <TabControl x:Name="MainTabs">
+            <TabItem Header="IIPS Archive Explorer">
+                <controls:IIPSArchiveFileExplorer x:Name="IIPSExplorer" />
+            </TabItem>
+            <TabItem Header="Level Map Viewer" IsEnabled="{Binding HasDataSource}">
+                <controls:LevelMapViewer x:Name="LevelMapControl" />
+            </TabItem>
+            <TabItem Header="Quest Viewer" IsEnabled="{Binding HasDataSource}">
+                <controls:QuestViewer x:Name="QuestControl" />
+            </TabItem>
+            <TabItem Header="Item Viewer" IsEnabled="{Binding HasDataSource}">
+                <controls:ItemViewer x:Name="ItemControl" />
+            </TabItem>
+            <TabItem Header="Entity Viewer" IsEnabled="{Binding HasDataSource}">
+                <controls:EntityViewer x:Name="EntityControl" />
+            </TabItem>
+            <TabItem Header="Crafting" IsEnabled="{Binding HasDataSource}">
+                <controls:CraftViewer x:Name="CraftControl" />
+            </TabItem>
+        </TabControl>
+
+    </DockPanel>
 
 </Window>

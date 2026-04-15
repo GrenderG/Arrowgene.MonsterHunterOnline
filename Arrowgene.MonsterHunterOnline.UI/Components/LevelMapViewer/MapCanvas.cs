@@ -32,6 +32,9 @@ public sealed class MapCanvas : Control
     public static readonly StyledProperty<bool> ShowRegionsProperty =
         AvaloniaProperty.Register<MapCanvas, bool>(nameof(ShowRegions), true);
 
+    public static readonly StyledProperty<bool> UseMinimapProperty =
+        AvaloniaProperty.Register<MapCanvas, bool>(nameof(UseMinimap), true);
+
     private static readonly IBrush BgBrush = new SolidColorBrush(Color.FromRgb(30, 32, 38));
     private static readonly IBrush TerrainBrush = new SolidColorBrush(Color.FromRgb(42, 46, 55));
     private static readonly IPen TerrainPen = new Pen(new SolidColorBrush(Color.FromRgb(60, 65, 78)), 1);
@@ -99,10 +102,16 @@ public sealed class MapCanvas : Control
         set => SetValue(ShowRegionsProperty, value);
     }
 
+    public bool UseMinimap
+    {
+        get => GetValue(UseMinimapProperty);
+        set => SetValue(UseMinimapProperty, value);
+    }
+
     static MapCanvas()
     {
         AffectsRender<MapCanvas>(LevelProperty, ShowMonstersProperty, ShowResourcesProperty,
-            ShowPlayerSpawnsProperty, ShowRegionsProperty);
+            ShowPlayerSpawnsProperty, ShowRegionsProperty, UseMinimapProperty);
     }
 
     public MapCanvas()
@@ -117,6 +126,10 @@ public sealed class MapCanvas : Control
         {
             RebuildTerrainBitmap();
             RebuildMinimapBitmaps();
+            ResetView();
+        }
+        else if (change.Property == UseMinimapProperty)
+        {
             ResetView();
         }
     }
@@ -339,7 +352,8 @@ public sealed class MapCanvas : Control
             return;
         }
 
-        bool useClientMinimap = TryGetClientMinimapProjection(level, out ClientMinimapProjection projection);
+        ClientMinimapProjection projection = default;
+        bool useClientMinimap = UseMinimap && TryGetClientMinimapProjection(level, out projection);
         Size contentSize = GetContentSize(level);
         Rect mapRect = new Rect(_offsetX, _offsetY, contentSize.Width * _zoom, contentSize.Height * _zoom);
 
@@ -470,19 +484,22 @@ public sealed class MapCanvas : Control
             DrawMinimapBitmaps(ctx, projection);
             DrawClientMinimapGrid(ctx, projection, mapRect);
 
-            foreach (LevelClientMiniMapRegion region in projection.Asset!.Regions)
+            if (ShowRegions)
             {
-                Rect regionRect = GetClientMinimapRegionRect(region, projection);
-                ctx.DrawRectangle(ClientMinimapRegionFill, ClientMinimapRegionPen, regionRect);
-
-                if (region.IdentifierValue.HasValue)
+                foreach (LevelClientMiniMapRegion region in projection.Asset!.Regions)
                 {
-                    string labelText = region.IdentifierName.Length > 0
-                        ? $"{region.IdentifierName}:{region.IdentifierValue.Value}"
-                        : region.IdentifierValue.Value.ToString(CultureInfo);
-                    var label = new FormattedText(labelText, CultureInfo, FlowDirection.LeftToRight,
-                        LabelTypeface, 10, Brushes.White);
-                    ctx.DrawText(label, new Point(regionRect.X + 4, regionRect.Y + 4));
+                    Rect regionRect = GetClientMinimapRegionRect(region, projection);
+                    ctx.DrawRectangle(ClientMinimapRegionFill, ClientMinimapRegionPen, regionRect);
+
+                    if (region.IdentifierValue.HasValue)
+                    {
+                        string labelText = region.IdentifierName.Length > 0
+                            ? $"{region.IdentifierName}:{region.IdentifierValue.Value}"
+                            : region.IdentifierValue.Value.ToString(CultureInfo);
+                        var label = new FormattedText(labelText, CultureInfo, FlowDirection.LeftToRight,
+                            LabelTypeface, 10, Brushes.White);
+                        ctx.DrawText(label, new Point(regionRect.X + 4, regionRect.Y + 4));
+                    }
                 }
             }
 
@@ -586,13 +603,20 @@ public sealed class MapCanvas : Control
 
     private bool TryProjectToCanvas(LevelData level, Vec3 worldPosition, out Point point)
     {
-        if (TryGetClientMinimapProjection(level, out ClientMinimapProjection projection) &&
-            projection.Asset!.TryProjectWorldPosition(worldPosition, out Vec2 mapPosition))
+        if (UseMinimap && TryGetClientMinimapProjection(level, out ClientMinimapProjection projection))
         {
-            point = ClientMapToScreen(mapPosition, projection);
-            return true;
+            if (projection.Asset!.TryProjectWorldPosition(worldPosition, out Vec2 mapPosition))
+            {
+                point = ClientMapToScreen(mapPosition, projection);
+                return true;
+            }
+
+            // Entity is not in any minimap region — skip it.
+            point = default;
+            return false;
         }
 
+        // Terrain mode: project using world coordinates.
         float worldSize = level.Terrain.WorldSize;
         if (worldSize <= 0)
         {
@@ -607,7 +631,7 @@ public sealed class MapCanvas : Control
 
     private Size GetContentSize(LevelData level)
     {
-        if (TryGetClientMinimapProjection(level, out ClientMinimapProjection projection))
+        if (UseMinimap && TryGetClientMinimapProjection(level, out ClientMinimapProjection projection))
         {
             return new Size(projection.Width, projection.Height);
         }
@@ -633,33 +657,36 @@ public sealed class MapCanvas : Control
     private static bool TryGetClientMinimapProjection(LevelData level, out ClientMinimapProjection projection)
     {
         LevelClientMiniMapAsset? asset = level.ClientMiniMap;
-        if (asset == null || asset.Regions.Count == 0)
+        if (asset == null)
         {
             projection = default;
             return false;
         }
 
-        IEnumerable<Vec2> corners = asset.Regions.SelectMany(region => new[] { region.TopLeft2D, region.BottomRight2D });
-        float regionMinX = corners.Min(point => point.X);
-        float regionMaxX = corners.Max(point => point.X);
-        float regionMinY = corners.Min(point => point.Y);
-        float regionMaxY = corners.Max(point => point.Y);
-
-        float minX = regionMinX;
-        float maxX = regionMaxX;
-        float minY = regionMinY;
-        float maxY = regionMaxY;
-
-        if (asset.CanvasWidth > 0)
+        // No regions and no canvas dimensions — nothing to project.
+        if (asset.Regions.Count == 0 && asset.CanvasWidth <= 0 && asset.CanvasHeight <= 0)
         {
-            minX = Math.Min(0f, minX);
-            maxX = Math.Max(asset.CanvasWidth, maxX);
+            projection = default;
+            return false;
         }
 
-        if (asset.CanvasHeight > 0)
+        float minX = 0f;
+        float maxX = Math.Max(1f, asset.CanvasWidth);
+        float minY = 0f;
+        float maxY = Math.Max(1f, asset.CanvasHeight);
+
+        if (asset.Regions.Count > 0)
         {
-            minY = Math.Min(0f, minY);
-            maxY = Math.Max(asset.CanvasHeight, maxY);
+            IEnumerable<Vec2> corners = asset.Regions.SelectMany(region => new[] { region.TopLeft2D, region.BottomRight2D });
+            float regionMinX = corners.Min(point => point.X);
+            float regionMaxX = corners.Max(point => point.X);
+            float regionMinY = corners.Min(point => point.Y);
+            float regionMaxY = corners.Max(point => point.Y);
+
+            minX = Math.Min(minX, regionMinX);
+            maxX = Math.Max(maxX, regionMaxX);
+            minY = Math.Min(minY, regionMinY);
+            maxY = Math.Max(maxY, regionMaxY);
         }
 
         float width = Math.Max(1f, maxX - minX);

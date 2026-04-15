@@ -51,10 +51,7 @@ public sealed partial class LevelMapViewerViewModel : ViewModelBase
     private readonly LevelDataLoader _loader = new();
 
     [ObservableProperty]
-    private string _clientFilesPath = string.Empty;
-
-    [ObservableProperty]
-    private string _statusText = "Select the MHO client files directory to load levels.";
+    private string _statusText = "Open a data source from the toolbar.";
 
     [ObservableProperty]
     private bool _isLoading;
@@ -76,6 +73,9 @@ public sealed partial class LevelMapViewerViewModel : ViewModelBase
 
     [ObservableProperty]
     private bool _showRegions = true;
+
+    [ObservableProperty]
+    private bool _useMinimap = true;
 
     [ObservableProperty]
     private string _selectedLevelInfo = string.Empty;
@@ -103,7 +103,6 @@ public sealed partial class LevelMapViewerViewModel : ViewModelBase
 
     public async Task LoadClientFilesAsync(string path)
     {
-        ClientFilesPath = path;
         IsLoading = true;
         StatusText = "Loading levels...";
         Levels.Clear();

@@ -113,16 +113,17 @@ public sealed class LevelDataLoader
         {
             try
             {
-                // Use terrain.dat header for world size (more accurate than leveldata.xml)
-                int terrainWorldSize = TerrainTextureLoader.ReadTerrainSize(terrainDatPath);
-                if (terrainWorldSize <= 0)
-                    terrainWorldSize = level.Terrain.WorldSize > 0 ? (int)level.Terrain.WorldSize : 2048;
+                // Use terrain.dat header for heightmap dimensions and unit scale
+                var (heightmapSize, unitSize) = TerrainTextureLoader.ReadTerrainInfo(terrainDatPath);
+                if (heightmapSize <= 0)
+                    heightmapSize = level.Terrain.HeightmapSize > 0 ? level.Terrain.HeightmapSize : 2048;
 
-                // Override terrain info with the correct world size from terrain.dat
-                level.Terrain.HeightmapSize = terrainWorldSize;
-                level.Terrain.HeightmapUnitSize = 1;
+                level.Terrain.HeightmapSize = heightmapSize;
+                level.Terrain.HeightmapUnitSize = unitSize;
 
-                byte[]? pixels = _textureLoader.LoadTexture(coverPath, terrainWorldSize, out int w, out int h);
+                // Render CTC at native heightmap resolution (1:1 with DXT tile pixels).
+                // The UI scales the bitmap to fill WorldSize via bilinear filtering.
+                byte[]? pixels = _textureLoader.LoadTexture(coverPath, heightmapSize, out int w, out int h);
                 if (pixels != null)
                 {
                     level.HeightmapPixels = pixels;

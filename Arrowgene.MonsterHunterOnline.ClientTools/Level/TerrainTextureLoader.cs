@@ -15,15 +15,19 @@ public sealed class TerrainTextureLoader
     private const int DXT5_FORMAT = 24;
 
     /// <summary>
-    /// Reads the terrain world size from the terrain.dat header.
+    /// Reads terrain dimensions from the terrain.dat header.
+    /// Returns (nHeightMapSize_InUnits, nUnitSize_InMeters).
     /// </summary>
-    public static int ReadTerrainSize(string terrainDatPath)
+    public static (int HeightmapSize, int UnitSize) ReadTerrainInfo(string terrainDatPath)
     {
-        if (!File.Exists(terrainDatPath)) return 0;
+        if (!File.Exists(terrainDatPath)) return (0, 1);
         byte[] hdr = new byte[32];
         using var fs = File.OpenRead(terrainDatPath);
-        if (fs.Read(hdr, 0, 32) < 32) return 0;
-        return BitConverter.ToInt32(hdr, 8); // nHeightMapSize_InUnits
+        if (fs.Read(hdr, 0, 32) < 32) return (0, 1);
+        int heightmapSize = BitConverter.ToInt32(hdr, 8);  // nHeightMapSize_InUnits
+        int unitSize = BitConverter.ToInt32(hdr, 12);       // nUnitSize_InMeters
+        if (unitSize < 1) unitSize = 1;
+        return (heightmapSize, unitSize);
     }
 
     /// <summary>
@@ -130,7 +134,8 @@ public sealed class TerrainTextureLoader
 
         int childSize = nodeSize / 2;
 
-        // Count how many children have subtrees (peek ahead without consuming)
+        // Count how many children have textures by peeking ahead, properly
+        // skipping each child's subtree to find the next sibling's root index.
         int childrenWithTex = 0;
         if (childSize >= 1)
         {
@@ -139,7 +144,7 @@ public sealed class TerrainTextureLoader
             {
                 if (indices[peekPos] >= 0)
                     childrenWithTex++;
-                peekPos++;
+                peekPos += SubtreeSize(indices, peekPos, childSize);
             }
         }
 
@@ -152,10 +157,11 @@ public sealed class TerrainTextureLoader
                 composite, imgSize, worldX, worldY, nodeSize);
         }
 
-        // Process 4 children (CryEngine order: 0=(x,y) 1=(x+s,y) 2=(x,y+s) 3=(x+s,y+s))
+        // Process 4 children in CTC file order (X-outer, Y-inner / column-major):
+        // 0=(x,y) 1=(x,y+s) 2=(x+s,y) 3=(x+s,y+s)
         if (childSize < 1) return;
 
-        int[][] childOff = [[0, 0], [childSize, 0], [0, childSize], [childSize, childSize]];
+        int[][] childOff = [[0, 0], [0, childSize], [childSize, 0], [childSize, childSize]];
 
         for (int i = 0; i < 4; i++)
         {
@@ -172,6 +178,27 @@ public sealed class TerrainTextureLoader
                 indexPos++; // consume the -1
             }
         }
+    }
+
+    /// <summary>
+    /// Returns how many index entries the subtree rooted at indices[pos] consumes.
+    /// A -1 leaf is 1 entry. A node with texture at a non-leaf depth is
+    /// 1 (itself) plus the sum of its 4 children's subtree sizes.
+    /// </summary>
+    private static int SubtreeSize(short[] indices, int pos, int nodeSize)
+    {
+        if (pos >= indices.Length || indices[pos] < 0)
+            return 1;
+
+        int childSize = nodeSize / 2;
+        if (childSize < 1)
+            return 1;
+
+        int size = 1;
+        for (int i = 0; i < 4; i++)
+            size += SubtreeSize(indices, pos + size, childSize);
+
+        return size;
     }
 
     private void DecodeTileAndBlit(byte[] data, short texIndex,
