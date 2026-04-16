@@ -2,8 +2,6 @@ using System.Collections.Generic;
 using Arrowgene.Buffers;
 using Arrowgene.Logging;
 using Arrowgene.MonsterHunterOnline.Protocol.Constant;
-using Arrowgene.MonsterHunterOnline.Protocol;
-using Arrowgene.MonsterHunterOnline.Protocol.Constant;
 using Arrowgene.MonsterHunterOnline.Protocol.TlvStructures;
 
 namespace Arrowgene.MonsterHunterOnline.Protocol.Structures

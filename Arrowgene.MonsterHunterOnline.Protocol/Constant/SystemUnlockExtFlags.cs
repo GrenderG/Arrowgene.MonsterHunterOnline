@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Arrowgene.MonsterHunterOnline.Service.System.UnlockSystem;
+namespace Arrowgene.MonsterHunterOnline.Protocol.Constant;
 
 [Flags]
 public enum SystemUnlockExtFlags : uint
@@ -17,4 +17,17 @@ public enum SystemUnlockExtFlags : uint
     Unbind = 1 << 8,
     GuardStoneSmelting = 1 << 9,
     LegendarySkillOrb = 1 << 10,
+}
+
+public static class SystemUnlockExtFlagsExtensions
+{
+
+    /// <summary>
+    /// Returns `ExtFlags` (bits 33 - 64)
+    /// </summary>
+    public static SystemUnlockExtFlags ToExtFlags(this SystemUnlockFlags flags)
+    {
+        return (SystemUnlockExtFlags)(flags.ToUInt64() >> 32);
+    }
+
 }

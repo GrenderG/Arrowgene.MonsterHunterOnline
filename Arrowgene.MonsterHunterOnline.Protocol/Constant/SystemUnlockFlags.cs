@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Arrowgene.MonsterHunterOnline.Service.System.UnlockSystem;
+namespace Arrowgene.MonsterHunterOnline.Protocol.Constant;
 
 [Flags]
 public enum SystemUnlockFlags : ulong
@@ -61,4 +61,39 @@ public enum SystemUnlockFlags : ulong
     Unbind = 1UL << 40,
     GuardStoneSmelting = 1UL << 41,
     LegendarySkillOrb = 1UL << 42,
+}
+
+public static class SystemUnlockFlagsExtensions
+{
+    /// <summary>
+    /// Returns the ulong value
+    /// </summary>
+    public static ulong ToUInt64(this SystemUnlockFlags flags)
+    {
+        return (ulong)flags;
+    }
+
+    /// <summary>
+    /// Returns the first 32bits as int value
+    /// </summary>
+    public static int ToInt32(this SystemUnlockFlags flags)
+    {
+        return (int)(flags.ToUInt64() & uint.MaxValue);
+    }
+
+    /// <summary>
+    /// Returns the first 32bits as int value
+    /// </summary>
+    public static SystemUnlockFlags FromInt32(this SystemUnlockFlags flags, int value)
+    {
+        return (SystemUnlockFlags)(uint)value;
+    }
+
+    /// <summary>
+    /// Returns the int value
+    /// </summary>
+    public static int ToInt32(this SystemUnlockExtFlags flags)
+    {
+        return (int)flags;
+    }
 }

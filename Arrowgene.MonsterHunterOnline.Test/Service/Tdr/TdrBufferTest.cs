@@ -1,5 +1,5 @@
 ﻿using Arrowgene.Buffers;
-using Arrowgene.MonsterHunterOnline.Service.Tdr;
+using Arrowgene.MonsterHunterOnline.Protocol;
 using Xunit;
 
 namespace Arrowgene.MonsterHunterOnline.Test.Service.Tdr;

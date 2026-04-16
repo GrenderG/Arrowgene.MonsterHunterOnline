@@ -1,4 +1,5 @@
-﻿using Arrowgene.MonsterHunterOnline.Service.System.UnlockSystem;
+﻿using Arrowgene.MonsterHunterOnline.Protocol.Constant;
+using Arrowgene.MonsterHunterOnline.Service.System.UnlockSystem;
 using Xunit;
 
 namespace Arrowgene.MonsterHunterOnline.Test.Service.System.UnlockSystem;
