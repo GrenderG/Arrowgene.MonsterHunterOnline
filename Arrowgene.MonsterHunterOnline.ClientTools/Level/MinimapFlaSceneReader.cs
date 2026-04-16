@@ -41,6 +41,8 @@ public sealed class LevelClientMiniMapBitmapPlacement
     public float Width { get; set; }
     public float Height { get; set; }
     public LevelClientMiniMapTransform Transform { get; set; } = LevelClientMiniMapTransform.Identity;
+    /// <summary>Region ID extracted from the FLA instance name (e.g. "r0" → 0). Null for non-region bitmaps.</summary>
+    public int? RegionId { get; set; }
 }
 
 public sealed class LevelClientMiniMapMarker
@@ -120,7 +122,7 @@ internal static class MinimapFlaSceneReader
             List<LevelClientMiniMapBitmapPlacement> allPlacements = [];
             List<LevelClientMiniMapBitmapPlacement> visiblePlacements = [];
             ParseTimelineOwner(root, LevelClientMiniMapTransform.Identity,
-                allPlacements, visiblePlacements, scene.Markers, depth: 0, parentLayerVisible: true);
+                allPlacements, visiblePlacements, scene.Markers, depth: 0, parentLayerVisible: true, regionId: null);
 
             List<LevelClientMiniMapBitmapPlacement> placements =
                 visiblePlacements.Count > 0 ? visiblePlacements : allPlacements;
@@ -138,7 +140,8 @@ internal static class MinimapFlaSceneReader
             List<LevelClientMiniMapBitmapPlacement> visiblePlacements,
             List<LevelClientMiniMapMarker> markers,
             int depth,
-            bool parentLayerVisible)
+            bool parentLayerVisible,
+            int? regionId)
         {
             if (depth > 12)
             {
@@ -174,7 +177,7 @@ internal static class MinimapFlaSceneReader
 
                 foreach (XElement element in elements.Elements())
                 {
-                    ParseElement(element, transform, allPlacements, visiblePlacements, markers, depth, layerVisible);
+                    ParseElement(element, transform, allPlacements, visiblePlacements, markers, depth, layerVisible, regionId);
                 }
             }
         }
@@ -185,7 +188,8 @@ internal static class MinimapFlaSceneReader
             List<LevelClientMiniMapBitmapPlacement> visiblePlacements,
             List<LevelClientMiniMapMarker> markers,
             int depth,
-            bool layerVisible)
+            bool layerVisible,
+            int? regionId)
         {
             string elementName = element.Name.LocalName;
             LevelClientMiniMapTransform elementTransform = parentTransform.Append(ParseMatrix(element));
@@ -196,6 +200,7 @@ internal static class MinimapFlaSceneReader
                     LevelClientMiniMapBitmapPlacement? placement = CreateBitmapPlacement(element, elementTransform);
                     if (placement != null)
                     {
+                        placement.RegionId = regionId;
                         allPlacements.Add(placement);
                         if (layerVisible)
                         {
@@ -205,9 +210,12 @@ internal static class MinimapFlaSceneReader
                     break;
 
                 case "DOMSymbolInstance":
+                {
+                    int? childRegionId = regionId ?? TryParseRegionId(element.Attribute("name")?.Value);
                     ParseLibraryItemTimeline(element.Attribute("libraryItemName")?.Value, elementTransform,
-                        allPlacements, visiblePlacements, markers, depth + 1, layerVisible);
+                        allPlacements, visiblePlacements, markers, depth + 1, layerVisible, childRegionId);
                     break;
+                }
 
                 case "DOMComponentInstance":
                     LevelClientMiniMapMarker? marker = CreateMarker(element, elementTransform);
@@ -217,7 +225,7 @@ internal static class MinimapFlaSceneReader
                     }
 
                     ParseLibraryItemTimeline(element.Attribute("libraryItemName")?.Value, elementTransform,
-                        allPlacements, visiblePlacements, markers, depth + 1, layerVisible);
+                        allPlacements, visiblePlacements, markers, depth + 1, layerVisible, regionId);
                     break;
             }
         }
@@ -228,7 +236,8 @@ internal static class MinimapFlaSceneReader
             List<LevelClientMiniMapBitmapPlacement> visiblePlacements,
             List<LevelClientMiniMapMarker> markers,
             int depth,
-            bool layerVisible)
+            bool layerVisible,
+            int? regionId)
         {
             if (string.IsNullOrWhiteSpace(libraryItemName))
             {
@@ -241,7 +250,7 @@ internal static class MinimapFlaSceneReader
                 return;
             }
 
-            ParseTimelineOwner(libraryRoot, transform, allPlacements, visiblePlacements, markers, depth, layerVisible);
+            ParseTimelineOwner(libraryRoot, transform, allPlacements, visiblePlacements, markers, depth, layerVisible, regionId);
         }
 
         private LevelClientMiniMapBitmapPlacement? CreateBitmapPlacement(XElement element, LevelClientMiniMapTransform transform)
@@ -658,6 +667,16 @@ internal static class MinimapFlaSceneReader
             }
 
             return table;
+        }
+
+        private static int? TryParseRegionId(string? instanceName)
+        {
+            if (instanceName == null || instanceName.Length < 2 || instanceName[0] != 'r')
+            {
+                return null;
+            }
+
+            return int.TryParse(instanceName.AsSpan(1), CultureInfo.InvariantCulture, out int id) ? id : null;
         }
 
         private static string NormalizeArchivePath(string path)

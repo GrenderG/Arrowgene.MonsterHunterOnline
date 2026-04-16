@@ -555,7 +555,16 @@ public sealed class MapCanvas : Control
             Vec2 topLeft = placement.Transform.TransformPoint(0f, 0f);
             float screenX = flaOriginScreenX + topLeft.X * _zoom;
             float screenY = flaOriginScreenY + topLeft.Y * _zoom;
-            Rect destRect = new(screenX, screenY, placement.Width * _zoom, placement.Height * _zoom);
+
+            // Use transform-derived canvas size (handles scale transforms).
+            Vec2 topRight = placement.Transform.TransformPoint(placement.Width, 0f);
+            Vec2 bottomLeft = placement.Transform.TransformPoint(0f, placement.Height);
+            float canvasW = MathF.Abs(topRight.X - topLeft.X);
+            float canvasH = MathF.Abs(bottomLeft.Y - topLeft.Y);
+            if (canvasW < 0.5f) canvasW = placement.Width;
+            if (canvasH < 0.5f) canvasH = placement.Height;
+
+            Rect destRect = new(screenX, screenY, canvasW * _zoom, canvasH * _zoom);
             ctx.DrawImage(bitmap, destRect);
         }
     }
