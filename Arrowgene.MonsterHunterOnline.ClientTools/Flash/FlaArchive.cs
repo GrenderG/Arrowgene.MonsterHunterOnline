@@ -16,10 +16,12 @@ public sealed class FlaArchive
 
     private readonly Dictionary<string, FlaArchiveEntry> _entriesByName;
     private readonly List<FlaArchiveEntry> _entries;
+    private readonly byte[]? _data;
 
-    private FlaArchive(string sourcePath)
+    private FlaArchive(string sourcePath, byte[]? data = null)
     {
         SourcePath = sourcePath;
+        _data = data;
         _entries = [];
         _entriesByName = new Dictionary<string, FlaArchiveEntry>(EntryComparer);
     }
@@ -52,6 +54,13 @@ public sealed class FlaArchive
         return archive;
     }
 
+    public static FlaArchive Open(byte[] data, string name = "(memory)")
+    {
+        FlaArchive archive = new(name, data);
+        archive.Load();
+        return archive;
+    }
+
     public bool TryGetEntry(string entryName, out FlaArchiveEntry? entry)
     {
         return _entriesByName.TryGetValue(NormalizeEntryName(entryName), out entry);
@@ -74,7 +83,7 @@ public sealed class FlaArchive
 
     public byte[] Extract(FlaArchiveEntry entry)
     {
-        using FileStream stream = File.OpenRead(SourcePath);
+        using Stream stream = OpenSource();
         stream.Position = entry.DataOffset;
 
         byte[] compressedData = new byte[checked((int)entry.CompressedSize)];
@@ -116,9 +125,15 @@ public sealed class FlaArchive
         }
     }
 
+    private Stream OpenSource()
+    {
+        if (_data != null) return new MemoryStream(_data, writable: false);
+        return File.OpenRead(SourcePath);
+    }
+
     private void Load()
     {
-        using FileStream stream = File.OpenRead(SourcePath);
+        using Stream stream = OpenSource();
         using BinaryReader reader = new(stream, Encoding.UTF8, leaveOpen: true);
 
         while (stream.Position <= stream.Length - 4)
@@ -213,8 +228,39 @@ public sealed class FlaArchive
 
     private static string ReadEntryName(byte[] entryNameData, ushort generalPurposeBitFlag)
     {
-        Encoding encoding = (generalPurposeBitFlag & 0x0800) != 0 ? Encoding.UTF8 : Encoding.GetEncoding(437);
-        return encoding.GetString(entryNameData);
+        if ((generalPurposeBitFlag & 0x0800) != 0)
+        {
+            return Encoding.UTF8.GetString(entryNameData);
+        }
+
+        // If all bytes are ASCII, CP437 and UTF-8 produce the same result.
+        bool hasHighBytes = false;
+        for (int i = 0; i < entryNameData.Length; i++)
+        {
+            if (entryNameData[i] > 0x7F)
+            {
+                hasHighBytes = true;
+                break;
+            }
+        }
+
+        if (!hasHighBytes)
+        {
+            return Encoding.GetEncoding(437).GetString(entryNameData);
+        }
+
+        // Many Chinese authoring tools (including Adobe Flash CS5) write UTF-8
+        // filenames without setting the language encoding flag (bit 11).
+        // Try strict UTF-8 first; fall back to CP437 if the bytes aren't valid UTF-8.
+        try
+        {
+            return new UTF8Encoding(false, true).GetString(entryNameData);
+        }
+        catch (DecoderFallbackException)
+        {
+        }
+
+        return Encoding.GetEncoding(437).GetString(entryNameData);
     }
 
     private static byte[] DecompressEntry(ushort compressionMethod, byte[] compressedData, int uncompressedSize)

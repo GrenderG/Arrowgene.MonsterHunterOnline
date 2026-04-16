@@ -41,9 +41,15 @@ public sealed class IIPSUnifiedArchive : IDisposable
         // or in an iipsdownload subdirectory (common MHO client layout)
         string[] searchDirs = [iipsDir, Path.Combine(iipsDir, "iipsdownload")];
 
+        // Use ALL referenced files from the entire lst history, not just the resolved latest.
+        // This handles version mismatches where the lst references newer archives that don't exist
+        // but older versions of the same archives are available on disk.
+        // The merge logic (later overwrites earlier) produces the correct result.
+        List<string> allFiles = fileList.GetAllReferencedFiles();
+
         Dictionary<string, IIPSArchiveEntry> merged = new(StringComparer.OrdinalIgnoreCase);
 
-        foreach (string ifsFileName in resolved.AllFilesInOrder)
+        foreach (string ifsFileName in allFiles)
         {
             string? foundPath = null;
             foreach (string dir in searchDirs)

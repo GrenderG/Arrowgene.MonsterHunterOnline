@@ -111,15 +111,7 @@ public sealed partial class LevelMapViewerViewModel : ViewModelBase
 
         try
         {
-            // LevelDataLoader uses filesystem directly (XML, terrain, minimap) — needs a directory path
-            string? root = (provider as DirectoryFileProvider)?.Root;
-            if (root == null)
-            {
-                StatusText = "Level Map requires a local directory source.";
-                return;
-            }
-
-            List<LevelData> levels = await Task.Run(() => _loader.LoadAll(root));
+            List<LevelData> levels = await Task.Run(() => _loader.LoadAll(provider));
 
             foreach (LevelData level in levels.OrderBy(l => l.Name, StringComparer.OrdinalIgnoreCase))
             {
@@ -128,7 +120,8 @@ public sealed partial class LevelMapViewerViewModel : ViewModelBase
 
             OnPropertyChanged(nameof(HasLevels));
             int minimapBackedLevels = levels.Count(level => level.ClientMiniMap != null);
-            StatusText = $"Loaded {levels.Count} levels from {root} ({minimapBackedLevels} with client minimap assets)";
+            int texturedLevels = levels.Count(level => level.HeightmapPixels != null);
+            StatusText = $"Loaded {levels.Count} levels ({minimapBackedLevels} minimap, {texturedLevels} terrain textures)";
 
             if (Levels.Count > 0)
             {

@@ -2,8 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Xml.Linq;
 using Arrowgene.Logging;
+using Arrowgene.MonsterHunterOnline.ClientTools.FileProvider;
 
 namespace Arrowgene.MonsterHunterOnline.ClientTools.Level;
 
@@ -21,55 +23,56 @@ public sealed class LevelDataLoader
     /// Discovers and loads all levels from the client files root directory.
     /// Expects <paramref name="clientFilesRoot"/>/levels/ to contain level subdirectories.
     /// </summary>
-    public List<LevelData> LoadAll(string clientFilesRoot)
-    {
-        string levelsDir = Path.Combine(clientFilesRoot, "levels");
-        if (!Directory.Exists(levelsDir))
-        {
-            Logger.Error($"Levels directory not found: {levelsDir}");
-            return [];
-        }
-
-        List<LevelData> levels = [];
-        string[] dirs = Directory.GetDirectories(levelsDir);
-        Array.Sort(dirs, StringComparer.OrdinalIgnoreCase);
-
-        foreach (string dir in dirs)
-        {
-            LevelData? level = LoadLevel(dir, clientFilesRoot);
-            if (level != null)
-            {
-                levels.Add(level);
-            }
-        }
-
-        Logger.Info($"Loaded {levels.Count} levels from {levelsDir}");
-        return levels;
-    }
+    /// <summary>
+    /// Compatibility overload for loading from a filesystem directory path.
+    /// </summary>
+    public List<LevelData> LoadAll(string clientFilesRoot) => LoadAll(new DirectoryFileProvider(clientFilesRoot));
 
     /// <summary>
-    /// Loads a single level from its directory.
+    /// Compatibility overload for loading a single level from its directory.
     /// </summary>
     public LevelData? LoadLevel(string levelDir)
     {
-        return LoadLevel(levelDir, ResolveClientFilesRoot(levelDir));
+        // Walk up to find the client root (levelDir → levels → root)
+        DirectoryInfo? di = new DirectoryInfo(levelDir);
+        string? root = di.Parent?.Parent?.FullName;
+        if (root == null) return null;
+        string levelName = di.Name;
+        return LoadLevel(new DirectoryFileProvider(root), $"levels/{levelName}", levelName);
     }
 
-    private LevelData? LoadLevel(string levelDir, string? clientFilesRoot)
+    public List<LevelData> LoadAll(IFileProvider provider)
     {
-        string levelName = Path.GetFileName(levelDir);
+        List<LevelData> levels = [];
+        List<string> dirs = provider.EnumerateDirectories("levels")
+            .OrderBy(d => d, StringComparer.OrdinalIgnoreCase).ToList();
+
+        foreach (string dir in dirs)
+        {
+            string levelName = dir.Split('/').Last();
+            LevelData? level = LoadLevel(provider, dir, levelName);
+            if (level != null)
+                levels.Add(level);
+        }
+
+        Logger.Info($"Loaded {levels.Count} levels");
+        return levels;
+    }
+
+    private LevelData? LoadLevel(IFileProvider provider, string levelDir, string levelName)
+    {
         LevelData level = new()
         {
             Name = levelName,
             DirectoryPath = levelDir,
         };
 
-        string leveldataPath = Path.Combine(levelDir, "leveldata.xml");
-        if (File.Exists(leveldataPath))
+        string leveldataPath = $"{levelDir}/leveldata.xml";
+        if (provider.Exists(leveldataPath))
         {
             try
             {
-                ParseLevelData(level, leveldataPath);
+                ParseLevelData(level, provider.ReadAllBytes(leveldataPath));
             }
             catch (Exception ex)
             {
@@ -77,12 +80,12 @@ public sealed class LevelDataLoader
             }
         }
 
-        string missionPath = Path.Combine(levelDir, "mission_mission0.xml");
-        if (File.Exists(missionPath))
+        string missionPath = $"{levelDir}/mission_mission0.xml";
+        if (provider.Exists(missionPath))
         {
             try
             {
-                ParseMission(level, missionPath);
+                ParseMission(level, provider.ReadAllBytes(missionPath));
             }
             catch (Exception ex)
             {
@@ -95,35 +98,31 @@ public sealed class LevelDataLoader
             return null;
         }
 
-        if (!string.IsNullOrEmpty(clientFilesRoot))
+        try
         {
-            try
-            {
-                level.ClientMiniMap = _minimapAssetLoader.LoadForLevel(clientFilesRoot, levelName);
-            }
-            catch (Exception ex)
-            {
-                Logger.Error($"Failed to load client minimap asset for {levelName}: {ex.Message}");
-            }
+            level.ClientMiniMap = _minimapAssetLoader.LoadForLevel(provider, levelName);
+        }
+        catch (Exception ex)
+        {
+            Logger.Error($"Failed to load client minimap asset for {levelName}: {ex.Message}");
         }
 
-        string coverPath = Path.Combine(levelDir, "terrain", "cover.ctc");
-        string terrainDatPath = Path.Combine(levelDir, "terrain", "terrain.dat");
-        if (File.Exists(coverPath))
+        string coverPath = $"{levelDir}/terrain/cover.ctc";
+        string terrainDatPath = $"{levelDir}/terrain/terrain.dat";
+        if (provider.Exists(coverPath))
         {
             try
             {
-                // Use terrain.dat header for heightmap dimensions and unit scale
-                var (heightmapSize, unitSize) = TerrainTextureLoader.ReadTerrainInfo(terrainDatPath);
+                var (heightmapSize, unitSize) = provider.Exists(terrainDatPath)
+                    ? TerrainTextureLoader.ReadTerrainInfo(provider.ReadAllBytes(terrainDatPath))
+                    : (0, 1);
                 if (heightmapSize <= 0)
                     heightmapSize = level.Terrain.HeightmapSize > 0 ? level.Terrain.HeightmapSize : 2048;
 
                 level.Terrain.HeightmapSize = heightmapSize;
                 level.Terrain.HeightmapUnitSize = unitSize;
 
-                // Render CTC at native heightmap resolution (1:1 with DXT tile pixels).
-                // The UI scales the bitmap to fill WorldSize via bilinear filtering.
-                byte[]? pixels = _textureLoader.LoadTexture(coverPath, heightmapSize, out int w, out int h);
+                byte[]? pixels = _textureLoader.LoadTexture(provider.ReadAllBytes(coverPath), heightmapSize, out int w, out int h);
                 if (pixels != null)
                 {
                     level.HeightmapPixels = pixels;
@@ -140,26 +139,9 @@ public sealed class LevelDataLoader
         return level;
     }
 
-    private static string? ResolveClientFilesRoot(string levelDir)
+    private void ParseLevelData(LevelData level, byte[] data)
     {
-        DirectoryInfo? directory = new DirectoryInfo(levelDir);
-        if (!directory.Exists)
-        {
-            return null;
-        }
-
-        DirectoryInfo? levelsDirectory = directory.Parent;
-        if (levelsDirectory == null || !string.Equals(levelsDirectory.Name, "levels", StringComparison.OrdinalIgnoreCase))
-        {
-            return null;
-        }
-
-        return levelsDirectory.Parent?.FullName;
-    }
-
-    private void ParseLevelData(LevelData level, string path)
-    {
-        XDocument doc = MhoCryXmlCodec.LoadFile(path);
+        XDocument doc = MhoCryXmlCodec.LoadDocument(data);
         XElement? levelInfo = doc.Root?.Element("LevelInfo");
         if (levelInfo == null) return;
 
@@ -172,9 +154,9 @@ public sealed class LevelDataLoader
         };
     }
 
-    private void ParseMission(LevelData level, string path)
+    private void ParseMission(LevelData level, byte[] data)
     {
-        XDocument doc = MhoCryXmlCodec.LoadFile(path);
+        XDocument doc = MhoCryXmlCodec.LoadDocument(data);
         XElement root = doc.Root!;
 
         // MiniMap

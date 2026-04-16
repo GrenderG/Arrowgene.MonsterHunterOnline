@@ -2,12 +2,15 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Arrowgene.Logging;
 using Arrowgene.MonsterHunterOnline.ClientTools.IIPS;
 
 namespace Arrowgene.MonsterHunterOnline.ClientTools.FileProvider;
 
 public sealed class IIPSFileProvider : IFileProvider
 {
+    private static readonly ILogger Logger = LogProvider.Logger(typeof(IIPSFileProvider));
+
     private readonly IIPSUnifiedArchive _archive;
     private readonly Dictionary<string, IIPSArchiveEntry> _lookup;
 
@@ -23,6 +26,25 @@ public sealed class IIPSFileProvider : IFileProvider
                 _lookup[key] = entry;
             }
         }
+
+        // Diagnostics
+        Logger.Info($"{_lookup.Count} entries indexed from {archive.MergedEntries.Count} merged");
+        int iconCount = _lookup.Keys.Count(k => k.StartsWith("libs/ui/flashassets/images/icon/", StringComparison.OrdinalIgnoreCase));
+        int levelCount = _lookup.Keys.Count(k => k.StartsWith("levels/", StringComparison.OrdinalIgnoreCase));
+        int staticCount = _lookup.Keys.Count(k => k.StartsWith("common/staticdata/", StringComparison.OrdinalIgnoreCase));
+        Logger.Info($"breakdown: staticdata={staticCount}, icons={iconCount}, levels={levelCount}");
+        Logger.Info($"loaded={archive.LoadedArchives.Count}, missing={archive.MissingArchives.Count}");
+
+        // Sample paths to check format
+        int sampled = 0;
+        foreach (string key in _lookup.Keys)
+        {
+            if (sampled++ < 10)
+                Logger.Info($"sample: \"{key}\"");
+        }
+
+        foreach (string m in archive.MissingArchives.Take(5))
+            Logger.Info($"missing archive: {m}");
     }
 
     public IIPSUnifiedArchive Archive => _archive;

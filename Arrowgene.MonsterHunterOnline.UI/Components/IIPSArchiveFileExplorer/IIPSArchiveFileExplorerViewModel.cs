@@ -10,6 +10,7 @@ using Arrowgene.Lua.Decompiler.Decompile;
 using Arrowgene.Lua.Decompiler.Parse;
 using Arrowgene.MonsterHunterOnline.ClientTools;
 using Arrowgene.MonsterHunterOnline.ClientTools.Dat;
+using Arrowgene.MonsterHunterOnline.ClientTools.FileProvider;
 using Arrowgene.MonsterHunterOnline.ClientTools.IIPS;
 using Arrowgene.MonsterHunterOnline.UI.Infrastructure;
 using Arrowgene.MonsterHunterOnline.UI.ViewModels;
@@ -46,6 +47,7 @@ public sealed class IIPSArchiveFileExplorerViewModel : ViewModelBase, IDisposabl
 
     private IIPSArchive? _archive;
     private IIPSUnifiedArchive? _unifiedArchive;
+    private IFileProvider? _fileProvider;
     private bool _isUnifiedMode;
     private string _archiveFileName = "No archive loaded";
     private string _archiveFilePath = "Select an IIPS archive to inspect its contents.";
@@ -415,7 +417,7 @@ public sealed class IIPSArchiveFileExplorerViewModel : ViewModelBase, IDisposabl
         private set => SetProperty(ref _isHexMode, value);
     }
 
-    public bool CanToggleHex => _selectedNode?.Entry != null;
+    public bool CanToggleHex => _selectedNode != null && !_selectedNode.IsDirectory;
 
     public string TextPreviewContent
     {
@@ -461,6 +463,39 @@ public sealed class IIPSArchiveFileExplorerViewModel : ViewModelBase, IDisposabl
         catch (Exception ex)
         {
             StatusText = $"Failed to open file list: {ex.Message}";
+            return false;
+        }
+    }
+
+    public bool TryOpenFileProvider(IFileProvider provider, string label)
+    {
+        try
+        {
+            DisposeArchive();
+            _fileProvider = provider;
+            IsUnifiedMode = true;
+            SetFilterTextSilently(string.Empty);
+            _lastSelectionPath = null;
+
+            ArchiveFileName = Path.GetFileName(label.TrimEnd(Path.DirectorySeparatorChar, '/'));
+            ArchiveFilePath = label;
+            FormatVersionText = "Directory";
+            SectorSizeText = "-";
+            HeaderHashText = "-";
+            BetHashText = "-";
+            HetHashText = "-";
+            OnPropertyChanged(nameof(HashSummaryTooltip));
+            HasArchive = true;
+            HasUnsavedChanges = false;
+
+            BuildFileProviderTree(provider);
+
+            StatusText = $"Loaded {EntryCount} files from {ArchiveFileName}.";
+            return true;
+        }
+        catch (Exception ex)
+        {
+            StatusText = $"Failed to open directory: {ex.Message}";
             return false;
         }
     }
@@ -857,6 +892,113 @@ public sealed class IIPSArchiveFileExplorerViewModel : ViewModelBase, IDisposabl
         ApplyFilter();
     }
 
+    private void BuildFileProviderTree(IFileProvider provider)
+    {
+        Dictionary<string, IIPSArchiveTreeNodeViewModel> directories = new(StringComparer.OrdinalIgnoreCase);
+        List<IIPSArchiveTreeNodeViewModel> roots = [];
+        int fileCount = 0;
+
+        EnumerateProvider(provider, "", directories, roots, ref fileCount);
+
+        foreach (IIPSArchiveTreeNodeViewModel root in roots)
+        {
+            root.SortRecursive();
+        }
+
+        IReadOnlyList<IIPSArchiveTreeNodeViewModel> sortedRoots = roots
+            .OrderByDescending(node => node.IsDirectory)
+            .ThenBy(node => node.Name, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        _allFileNodes = sortedRoots
+            .SelectMany(static root => root.EnumerateFileNodes())
+            .OrderBy(node => node.DisplayPath, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        EntryCount = fileCount;
+        NamedEntryCount = fileCount;
+        UnnamedEntryCount = 0;
+        DirectoryCount = directories.Count;
+        UpdateToolbarState();
+        ApplyFilter();
+    }
+
+    private static void EnumerateProvider(IFileProvider provider, string relativeDir,
+        Dictionary<string, IIPSArchiveTreeNodeViewModel> directories,
+        List<IIPSArchiveTreeNodeViewModel> roots, ref int fileCount)
+    {
+        foreach (string dirPath in provider.EnumerateDirectories(relativeDir))
+        {
+            string name = Path.GetFileName(dirPath);
+            string normalizedPath = dirPath.Replace('/', '\\');
+            IIPSArchiveTreeNodeViewModel dirNode = IIPSArchiveTreeNodeViewModel.CreateDirectory(name, normalizedPath, normalizedPath);
+            directories[normalizedPath] = dirNode;
+
+            string? parentKey = GetArchiveDirectory(normalizedPath);
+            if (parentKey != null && directories.TryGetValue(parentKey, out IIPSArchiveTreeNodeViewModel? parent))
+            {
+                parent.Children.Add(dirNode);
+            }
+            else
+            {
+                roots.Add(dirNode);
+            }
+
+            EnumerateProvider(provider, dirPath, directories, roots, ref fileCount);
+        }
+
+        foreach (string filePath in provider.EnumerateFiles(relativeDir, "*"))
+        {
+            string name = Path.GetFileName(filePath);
+            string normalizedPath = filePath.Replace('/', '\\');
+
+            long fileSize = 0;
+            if (provider is DirectoryFileProvider dirProvider)
+            {
+                try
+                {
+                    string fullPath = Path.Combine(dirProvider.Root, filePath.Replace('/', Path.DirectorySeparatorChar));
+                    fileSize = new FileInfo(fullPath).Length;
+                }
+                catch
+                {
+                }
+            }
+
+            IIPSArchiveTreeNodeViewModel fileNode = IIPSArchiveTreeNodeViewModel.CreateFile(name, normalizedPath, normalizedPath, fileSize);
+
+            string? parentKey = GetArchiveDirectory(normalizedPath);
+            if (parentKey != null && directories.TryGetValue(parentKey, out IIPSArchiveTreeNodeViewModel? parent))
+            {
+                parent.Children.Add(fileNode);
+            }
+            else
+            {
+                roots.Add(fileNode);
+            }
+
+            fileCount++;
+        }
+    }
+
+    private byte[]? ReadNodeBytes(IIPSArchiveTreeNodeViewModel node)
+    {
+        if (node.Entry != null)
+        {
+            return node.Entry.ReadAllBytes();
+        }
+
+        if (_fileProvider != null && !node.IsDirectory)
+        {
+            string path = node.DisplayPath.Replace('\\', '/');
+            if (_fileProvider.Exists(path))
+            {
+                return _fileProvider.ReadAllBytes(path);
+            }
+        }
+
+        return null;
+    }
+
     private static void AddNamedEntryNode(IIPSArchiveEntry entry,
         string archivePath,
         Dictionary<string, IIPSArchiveTreeNodeViewModel> directories,
@@ -937,7 +1079,7 @@ public sealed class IIPSArchiveFileExplorerViewModel : ViewModelBase, IDisposabl
         SelectedPath = node.DisplayPath;
         SelectedType = node.IsDirectory ? "Directory" : "File";
 
-        if (node.Entry == null)
+        if (node.IsDirectory)
         {
             SelectedLength = $"{node.EnumerateFileNodes().Count()} child files";
             SelectedStoredLength = "-";
@@ -950,13 +1092,27 @@ public sealed class IIPSArchiveFileExplorerViewModel : ViewModelBase, IDisposabl
             return;
         }
 
-        SelectedLength = FormatSize(node.Entry.Length);
-        SelectedStoredLength = FormatSize(node.Entry.StoredLength);
-        SelectedFlags = FormatFlags(node.Entry);
-        SelectedXmlFormat = DescribeXmlFormat(node.Entry);
-        SelectedLuaFormat = DescribeLuaFormat(node.Entry);
-        SelectedHash = node.Entry.Md5;
-        SelectedIndex = node.Entry.Index.ToString();
+        if (node.Entry != null)
+        {
+            SelectedLength = FormatSize(node.Entry.Length);
+            SelectedStoredLength = FormatSize(node.Entry.StoredLength);
+            SelectedFlags = FormatFlags(node.Entry);
+            SelectedXmlFormat = DescribeXmlFormat(node.Entry);
+            SelectedLuaFormat = DescribeLuaFormat(node.Entry);
+            SelectedHash = node.Entry.Md5;
+            SelectedIndex = node.Entry.Index.ToString();
+        }
+        else
+        {
+            SelectedLength = node.FileSize.HasValue ? FormatSize(node.FileSize.Value) : "-";
+            SelectedStoredLength = "-";
+            SelectedFlags = "-";
+            SelectedXmlFormat = "-";
+            SelectedLuaFormat = "-";
+            SelectedHash = "-";
+            SelectedIndex = "-";
+        }
+
         UpdatePreview(node);
     }
 
@@ -967,6 +1123,7 @@ public sealed class IIPSArchiveFileExplorerViewModel : ViewModelBase, IDisposabl
         _archive = null;
         _unifiedArchive?.Dispose();
         _unifiedArchive = null;
+        _fileProvider = null;
     }
 
     private void ResetArchiveState()
@@ -1159,31 +1316,33 @@ public sealed class IIPSArchiveFileExplorerViewModel : ViewModelBase, IDisposabl
     {
         OnPropertyChanged(nameof(CanToggleHex));
 
-        IIPSArchiveEntry? entry = node.Entry;
-        if (entry == null)
+        try
+        {
+            _currentPreviewData = ReadNodeBytes(node);
+        }
+        catch
+        {
+            _currentPreviewData = null;
+        }
+
+        if (_currentPreviewData == null || _currentPreviewData.Length == 0)
         {
             _currentPreviewData = null;
             IsHexMode = false;
-            ResetPreview("Preview unavailable.");
+            ResetPreview(_currentPreviewData == null ? "Preview unavailable." : "Empty file.");
             return;
         }
 
-        if (entry.Length <= 0)
-        {
-            _currentPreviewData = null;
-            IsHexMode = false;
-            ResetPreview("Empty file.");
-            return;
-        }
+        _currentPreviewLength = _currentPreviewData.Length;
 
         if (_userToggledHex)
         {
             IsHexMode = true;
-            UpdateHexPreview(node);
+            ShowHexPreview(_currentPreviewData, _currentPreviewLength);
             return;
         }
 
-        string? extension = Path.GetExtension(entry.ArchivePath ?? node.Name);
+        string? extension = Path.GetExtension(node.Entry?.ArchivePath ?? node.DisplayPath ?? node.Name);
 
         if (!string.IsNullOrWhiteSpace(extension))
         {
@@ -1218,19 +1377,19 @@ public sealed class IIPSArchiveFileExplorerViewModel : ViewModelBase, IDisposabl
 
         // No recognized preview - fall back to hex
         IsHexMode = true;
-        UpdateHexPreview(node);
+        ShowHexPreview(_currentPreviewData, _currentPreviewLength);
     }
 
     private void UpdateImagePreview(IIPSArchiveTreeNodeViewModel node)
     {
-        IIPSArchiveEntry? entry = node.Entry;
-        if (entry == null)
+        byte[]? data = _currentPreviewData;
+        if (data == null)
         {
             ResetPreview("Preview unavailable.");
             return;
         }
 
-        if (entry.Length > MaxImagePreviewBytes)
+        if (data.Length > MaxImagePreviewBytes)
         {
             ResetPreview($"Preview skipped for files larger than {FormatSize(MaxImagePreviewBytes)}.");
             return;
@@ -1238,8 +1397,8 @@ public sealed class IIPSArchiveFileExplorerViewModel : ViewModelBase, IDisposabl
 
         try
         {
-            byte[] data = entry.ReadAllBytes();
-            if (!ImagePreviewDecoder.TryDecode(data, entry.ArchivePath ?? node.Name, MaxPreviewDecodeWidth, out ImagePreviewDecodeResult decodedImage, out string? error))
+            string archivePath = node.Entry?.ArchivePath ?? node.DisplayPath ?? node.Name;
+            if (!ImagePreviewDecoder.TryDecode(data, archivePath, MaxPreviewDecodeWidth, out ImagePreviewDecodeResult decodedImage, out string? error))
             {
                 ResetPreview($"Preview unavailable: {error}");
                 return;
@@ -1260,14 +1419,14 @@ public sealed class IIPSArchiveFileExplorerViewModel : ViewModelBase, IDisposabl
 
     private void UpdateTextPreview(IIPSArchiveTreeNodeViewModel node)
     {
-        IIPSArchiveEntry? entry = node.Entry;
-        if (entry == null)
+        byte[]? data = _currentPreviewData;
+        if (data == null)
         {
             ResetPreview("Preview unavailable.");
             return;
         }
 
-        if (entry.Length > MaxTextPreviewBytes)
+        if (data.Length > MaxTextPreviewBytes)
         {
             ResetPreview($"Preview skipped for text files larger than {FormatSize(MaxTextPreviewBytes)}.");
             return;
@@ -1275,8 +1434,7 @@ public sealed class IIPSArchiveFileExplorerViewModel : ViewModelBase, IDisposabl
 
         try
         {
-            byte[] data = entry.ReadAllBytes();
-            string archivePath = entry.ArchivePath ?? node.Name;
+            string archivePath = node.Entry?.ArchivePath ?? node.DisplayPath ?? node.Name;
             string extension = Path.GetExtension(archivePath);
 
             if (string.Equals(extension, ".xml", StringComparison.OrdinalIgnoreCase) &&
@@ -1289,7 +1447,7 @@ public sealed class IIPSArchiveFileExplorerViewModel : ViewModelBase, IDisposabl
                 HasImagePreview = false;
                 HasTextPreview = true;
                 TextPreviewContent = xmlText;
-                PreviewDetails = $"{FormatXmlFormat(xmlFormat)} • {FormatSize(entry.Length)}";
+                PreviewDetails = $"{FormatXmlFormat(xmlFormat)} • {FormatSize(data.Length)}";
                 PreviewStatus = $"XML preview • {CountLines(xmlText)} line(s)";
                 return;
             }
@@ -1306,7 +1464,7 @@ public sealed class IIPSArchiveFileExplorerViewModel : ViewModelBase, IDisposabl
                         HasTextPreview = true;
                         TextPreviewContent = luaText;
                         string version = luaInfo.GetVersionString() ?? "?";
-                        PreviewDetails = $"Compiled Lua {version} (decompiled) • {FormatSize(entry.Length)}";
+                        PreviewDetails = $"Compiled Lua {version} (decompiled) • {FormatSize(data.Length)}";
                         PreviewStatus = $"Lua preview • {CountLines(luaText)} line(s)";
                         return;
                     }
@@ -1326,7 +1484,7 @@ public sealed class IIPSArchiveFileExplorerViewModel : ViewModelBase, IDisposabl
             HasImagePreview = false;
             HasTextPreview = true;
             TextPreviewContent = text;
-            PreviewDetails = $"{encodingName} • {FormatSize(entry.Length)}";
+            PreviewDetails = $"{encodingName} • {FormatSize(data.Length)}";
             PreviewStatus = $"Text preview • {CountLines(text)} line(s)";
         }
         catch (Exception ex)
@@ -1337,14 +1495,14 @@ public sealed class IIPSArchiveFileExplorerViewModel : ViewModelBase, IDisposabl
 
     private void UpdateCsvPreview(IIPSArchiveTreeNodeViewModel node)
     {
-        IIPSArchiveEntry? entry = node.Entry;
-        if (entry == null)
+        byte[]? data = _currentPreviewData;
+        if (data == null)
         {
             ResetPreview("Preview unavailable.");
             return;
         }
 
-        if (entry.Length > MaxTextPreviewBytes)
+        if (data.Length > MaxTextPreviewBytes)
         {
             ResetPreview($"Preview skipped for files larger than {FormatSize(MaxTextPreviewBytes)}.");
             return;
@@ -1352,7 +1510,6 @@ public sealed class IIPSArchiveFileExplorerViewModel : ViewModelBase, IDisposabl
 
         try
         {
-            byte[] data = entry.ReadAllBytes();
             if (!TryDecodeTextPreview(data, out string text, out _, out string? decodeError))
             {
                 ResetPreview($"CSV preview unavailable: {decodeError}");
@@ -1390,7 +1547,7 @@ public sealed class IIPSArchiveFileExplorerViewModel : ViewModelBase, IDisposabl
             HasTablePreview = true;
             TablePreviewHeaders = headers;
             TablePreviewRows = rows;
-            PreviewDetails = $"{headers.Length} col(s) • {rows.Count} row(s) • {FormatSize(entry.Length)}";
+            PreviewDetails = $"{headers.Length} col(s) • {rows.Count} row(s) • {FormatSize(data.Length)}";
             PreviewStatus = $"CSV preview • {headers.Length} column(s), {rows.Count} row(s)";
         }
         catch (Exception ex)
@@ -1401,8 +1558,8 @@ public sealed class IIPSArchiveFileExplorerViewModel : ViewModelBase, IDisposabl
 
     private void UpdateDatPreview(IIPSArchiveTreeNodeViewModel node)
     {
-        IIPSArchiveEntry? entry = node.Entry;
-        if (entry == null)
+        byte[]? data = _currentPreviewData;
+        if (data == null)
         {
             ResetPreview("Preview unavailable.");
             return;
@@ -1410,10 +1567,9 @@ public sealed class IIPSArchiveFileExplorerViewModel : ViewModelBase, IDisposabl
 
         try
         {
-            byte[] data = entry.ReadAllBytes();
             if (!DatFile.IsDatFile(data))
             {
-                ShowHexPreview(data, entry.Length);
+                ShowHexPreview(data, data.Length);
                 return;
             }
 
@@ -1422,7 +1578,7 @@ public sealed class IIPSArchiveFileExplorerViewModel : ViewModelBase, IDisposabl
 
             if (dat.ContentType != DatFile.DatContentType.TSV || dat.Sheets.Count == 0)
             {
-                ShowHexPreview(data, entry.Length);
+                ShowHexPreview(data, data.Length);
                 return;
             }
 
@@ -1456,7 +1612,7 @@ public sealed class IIPSArchiveFileExplorerViewModel : ViewModelBase, IDisposabl
             HasDatPreview = true;
             DatPreviewSheets = sheets;
             DatSelectedSheetIndex = 0;
-            PreviewDetails = $"{sheets.Count} sheet(s) • {totalRows} row(s) • {FormatSize(entry.Length)}";
+            PreviewDetails = $"{sheets.Count} sheet(s) • {totalRows} row(s) • {FormatSize(data.Length)}";
             PreviewStatus = $"DAT preview • {sheets.Count} sheet(s)";
         }
         catch (Exception ex)
@@ -1469,24 +1625,14 @@ public sealed class IIPSArchiveFileExplorerViewModel : ViewModelBase, IDisposabl
 
     private void UpdateHexPreview(IIPSArchiveTreeNodeViewModel node)
     {
-        IIPSArchiveEntry? entry = node.Entry;
-        if (entry == null)
+        byte[]? data = _currentPreviewData;
+        if (data == null)
         {
             ResetPreview("Preview unavailable.");
             return;
         }
 
-        try
-        {
-            byte[] data = entry.ReadAllBytes();
-            _currentPreviewData = data;
-            _currentPreviewLength = entry.Length;
-            ShowHexPreview(data, entry.Length);
-        }
-        catch (Exception ex)
-        {
-            ResetPreview($"Hex preview unavailable: {ex.Message}");
-        }
+        ShowHexPreview(data, _currentPreviewLength);
     }
 
     private void ShowHexPreview(byte[] data, long totalLength)

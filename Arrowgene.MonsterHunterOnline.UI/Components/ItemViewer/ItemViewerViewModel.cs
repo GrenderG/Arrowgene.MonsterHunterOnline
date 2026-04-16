@@ -226,10 +226,17 @@ public sealed partial class ItemViewerViewModel : ViewModelBase
             HashSet<string> cats = [];
             HashSet<string> rars = [];
             HashSet<string> srcs = [];
+            int iconHits = 0, iconMisses = 0;
+            string? firstIconKey = null;
 
             foreach (ItemDef item in db.Items.OrderBy(i => i.Id))
             {
-                var vm = new ItemListItemViewModel(item, _icons.LoadItemIcon(item.Icon));
+                if (firstIconKey == null && !string.IsNullOrEmpty(item.Icon))
+                    firstIconKey = item.Icon;
+
+                var icon = _icons.LoadItemIcon(item.Icon);
+                if (icon != null) iconHits++; else iconMisses++;
+                var vm = new ItemListItemViewModel(item, icon);
                 _allItems.Add(vm);
 
                 if (!string.IsNullOrEmpty(item.MainCategoryLabel))
@@ -253,7 +260,7 @@ public sealed partial class ItemViewerViewModel : ViewModelBase
             FilterText = string.Empty;
             ApplyFilter();
 
-            StatusText = $"Loaded {_allItems.Count} items";
+            StatusText = $"Loaded {_allItems.Count} items — icons: {iconHits} loaded, {iconMisses} missing (first key: \"{firstIconKey}\")";
 
             if (Items.Count > 0)
                 SelectedItem = Items[0];

@@ -218,12 +218,6 @@
                                 Orientation="Horizontal"
                                 VerticalAlignment="Center"
                                 Spacing="8">
-                        <Button Classes="toolbar-text"
-                                Content="Open"
-                                Click="OpenArchiveClick" />
-                        <Button Classes="toolbar-text"
-                                Content="File List"
-                                Click="OpenFileListClick" />
                         <Button Classes="toolbar-icon"
                                 Click="SaveArchiveClick"
                                 IsEnabled="{Binding CanSaveArchive}"

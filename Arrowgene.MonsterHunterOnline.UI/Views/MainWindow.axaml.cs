@@ -3,14 +3,18 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Arrowgene.Logging;
 using Arrowgene.MonsterHunterOnline.ClientTools.FileProvider;
 using Arrowgene.MonsterHunterOnline.ClientTools.IIPS;
 using Arrowgene.MonsterHunterOnline.UI.Components;
 using Arrowgene.MonsterHunterOnline.UI.Infrastructure;
 using Arrowgene.MonsterHunterOnline.UI.ViewModels;
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
+using Microsoft.Extensions.Logging;
 
 namespace Arrowgene.MonsterHunterOnline.UI.Views;
 
@@ -25,39 +29,27 @@ public partial class MainWindow : Window
 
     private MainWindowViewModel Vm => (MainWindowViewModel)DataContext!;
 
-    // ── Single Load button ──
+    // ── Toolbar buttons ──
 
-    private async void LoadClick(object? sender, RoutedEventArgs e)
+    private async void OpenArchiveClick(object? sender, RoutedEventArgs e)
     {
-        // Let user pick: folder, .lst file, or single .ifs archive
-        // Use a file picker that accepts all three — on macOS/Linux the folder picker is separate
-        // Strategy: show file picker first (for .lst and .ifs), with a "folder" option
-
-        // Try folder picker first via a simple choice: pick file or folder
-        // For simplicity, use file picker that accepts .lst, .ifs, and all files
-        // If user picks a directory (via folder selection), treat as directory mode
-        // If user picks .lst, treat as IIPS list mode
-        // If user picks .ifs, treat as single archive mode
-
-        string? path = await PickFileOrFolderAsync();
-        if (string.IsNullOrEmpty(path)) return;
-
-        if (Directory.Exists(path))
-        {
-            await LoadFromDirectoryAsync(path);
-        }
-        else if (path.EndsWith(".lst", StringComparison.OrdinalIgnoreCase))
-        {
-            await LoadFromIIPSListAsync(path);
-        }
-        else if (path.EndsWith(".ifs", StringComparison.OrdinalIgnoreCase))
-        {
+        string? path = await PickFileAsync("Select IIPS archive", [("IIPS Archive", ["*.ifs"])]);
+        if (!string.IsNullOrEmpty(path))
             await LoadFromSingleArchiveAsync(path);
-        }
-        else
-        {
-            Vm.StatusText = $"Unsupported file type: {Path.GetFileName(path)}";
-        }
+    }
+
+    private async void FileListClick(object? sender, RoutedEventArgs e)
+    {
+        string? path = await PickFileAsync("Select IIPS file list", [("IIPS File List", ["*.lst"])]);
+        if (!string.IsNullOrEmpty(path))
+            await LoadFromIIPSListAsync(path);
+    }
+
+    private async void FolderClick(object? sender, RoutedEventArgs e)
+    {
+        string? path = await PickFolderAsync("Select MHO client files directory");
+        if (!string.IsNullOrEmpty(path))
+            await LoadFromDirectoryAsync(path);
     }
 
     // ── Directory mode ──
@@ -67,6 +59,10 @@ public partial class MainWindow : Window
         CleanupPreviousSource();
         IFileProvider provider = new DirectoryFileProvider(dirPath);
         Vm.DataSourceLabel = $"Directory: {dirPath}";
+
+        if (IIPSExplorer.DataContext is IIPSArchiveFileExplorerViewModel explorerVm)
+            explorerVm.TryOpenFileProvider(provider, dirPath);
+
         await LoadAllViewersAsync(provider);
     }
 
@@ -199,44 +195,56 @@ public partial class MainWindow : Window
     protected override void OnClosing(WindowClosingEventArgs e)
     {
         CleanupPreviousSource();
+        if (IIPSExplorer.DataContext is IIPSArchiveFileExplorerViewModel explorerVm)
+            explorerVm.Dispose();
         base.OnClosing(e);
     }
 
-    // ── File picker ──
+    protected override void OnClosed(EventArgs e)
+    {
+        base.OnClosed(e);
+        if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+            desktop.Shutdown();
+        LogProvider.Stop();
+    }
 
-    private async Task<string?> PickFileOrFolderAsync()
+    // ── Pickers ──
+
+    private async Task<string?> PickFileAsync(string title, List<(string Name, List<string> Patterns)> filters)
     {
         if (OperatingSystem.IsMacOS())
-        {
-            // macOS native picker supports selecting both files and folders
-            return await MacNativePicker.PickFileOrFolderAsync("Select data source (directory, .lst, or .ifs)");
-        }
+            return await MacNativePicker.PickFileAsync(title);
 
-        // Non-macOS: show file picker with option to pick folders
         TopLevel? topLevel = TopLevel.GetTopLevel(this);
         if (topLevel?.StorageProvider == null) return null;
 
-        // Try file picker first
+        List<FilePickerFileType> fileTypes = filters
+            .Select(f => new FilePickerFileType(f.Name) { Patterns = f.Patterns })
+            .ToList();
+
         IReadOnlyList<IStorageFile> files = await topLevel.StorageProvider.OpenFilePickerAsync(
             new FilePickerOpenOptions
             {
-                Title = "Select data source (.lst, .ifs, or directory)",
+                Title = title,
                 AllowMultiple = false,
-                FileTypeFilter =
-                [
-                    new FilePickerFileType("IIPS Files") { Patterns = ["*.lst", "*.ifs"] },
-                    new FilePickerFileType("All Files") { Patterns = ["*"] },
-                ],
+                FileTypeFilter = fileTypes,
             });
 
-        if (files.Count > 0)
-            return files[0].TryGetLocalPath();
+        return files.Count > 0 ? files[0].TryGetLocalPath() : null;
+    }
 
-        // If no file selected, try folder picker
+    private async Task<string?> PickFolderAsync(string title)
+    {
+        if (OperatingSystem.IsMacOS())
+            return await MacNativePicker.PickFolderAsync(title);
+
+        TopLevel? topLevel = TopLevel.GetTopLevel(this);
+        if (topLevel?.StorageProvider == null) return null;
+
         IReadOnlyList<IStorageFolder> folders = await topLevel.StorageProvider.OpenFolderPickerAsync(
-            new FolderPickerOpenOptions { Title = "Select MHO client files directory", AllowMultiple = false });
+            new FolderPickerOpenOptions { Title = title, AllowMultiple = false });
 
-        return folders.Count == 0 ? null : folders[0].TryGetLocalPath();
+        return folders.Count > 0 ? folders[0].TryGetLocalPath() : null;
     }
 }
 

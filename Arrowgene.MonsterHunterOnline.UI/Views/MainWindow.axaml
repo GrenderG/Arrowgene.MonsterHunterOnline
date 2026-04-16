@@ -53,11 +53,23 @@
                 Background="#111827"
                 Padding="16,10">
             <Grid ColumnDefinitions="Auto,*,Auto">
-                <Button Content="Load"
-                        Click="LoadClick"
-                        Padding="12,6"
-                        MinHeight="34"
-                        IsEnabled="{Binding !IsLoading}" />
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <Button Content="Open"
+                            Click="OpenArchiveClick"
+                            Padding="12,6"
+                            MinHeight="34"
+                            IsEnabled="{Binding !IsLoading}" />
+                    <Button Content="File List"
+                            Click="FileListClick"
+                            Padding="12,6"
+                            MinHeight="34"
+                            IsEnabled="{Binding !IsLoading}" />
+                    <Button Content="Folder"
+                            Click="FolderClick"
+                            Padding="12,6"
+                            MinHeight="34"
+                            IsEnabled="{Binding !IsLoading}" />
+                </StackPanel>
 
                 <TextBlock Grid.Column="1"
                            Text="{Binding DataSourceLabel}"

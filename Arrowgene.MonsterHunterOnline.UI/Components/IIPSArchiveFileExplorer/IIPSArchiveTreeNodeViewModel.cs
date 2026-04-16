@@ -31,6 +31,7 @@ public sealed class IIPSArchiveTreeNodeViewModel
     public bool IsDirectory { get; }
     public bool IsFile => !IsDirectory;
     public IIPSArchiveEntry? Entry { get; }
+    public long? FileSize { get; private init; }
     public ObservableCollection<IIPSArchiveTreeNodeViewModel> Children { get; }
     public string KindLabel => IsDirectory ? "DIR" : "FILE";
     public string DisplayPath => ArchivePath ?? OutputRelativePath;
@@ -38,7 +39,7 @@ public sealed class IIPSArchiveTreeNodeViewModel
     public string SecondaryText => IsDirectory
         ? string.IsNullOrEmpty(ArchivePath) ? "Virtual archive folder" : ArchivePath
         : string.IsNullOrEmpty(ArchivePath) ? "Unnamed archive entry" : ArchivePath;
-    public string SummaryText => IsDirectory ? $"{Children.Count} items" : FormatSize(Entry?.Length ?? 0);
+    public string SummaryText => IsDirectory ? $"{Children.Count} items" : FormatSize(Entry?.Length ?? FileSize ?? 0);
 
     public static IIPSArchiveTreeNodeViewModel CreateDirectory(string name, string? archivePath, string outputRelativePath)
     {
@@ -48,6 +49,11 @@ public sealed class IIPSArchiveTreeNodeViewModel
     public static IIPSArchiveTreeNodeViewModel CreateFile(string name, string? archivePath, string outputRelativePath, IIPSArchiveEntry entry)
     {
         return new IIPSArchiveTreeNodeViewModel(name, archivePath, outputRelativePath, false, entry);
+    }
+
+    public static IIPSArchiveTreeNodeViewModel CreateFile(string name, string? archivePath, string outputRelativePath, long fileSize)
+    {
+        return new IIPSArchiveTreeNodeViewModel(name, archivePath, outputRelativePath, false, null) { FileSize = fileSize };
     }
 
     public IIPSArchiveTreeNodeViewModel CloneSubtree()

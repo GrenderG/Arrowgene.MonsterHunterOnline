@@ -30,7 +30,7 @@ public sealed class MinimapAssetLoaderTest : IDisposable
             """);
 
         MinimapAssetLoader loader = new();
-        LevelClientMiniMapAsset? asset = loader.LoadForLevel(_rootPath, "level_012");
+        LevelClientMiniMapAsset? asset = loader.LoadForLevel(new Arrowgene.MonsterHunterOnline.ClientTools.FileProvider.DirectoryFileProvider(_rootPath), "level_012");
 
         Assert.NotNull(asset);
         Assert.Equal("level_012", asset!.AssetName);
@@ -58,7 +58,7 @@ public sealed class MinimapAssetLoaderTest : IDisposable
             """);
 
         MinimapAssetLoader loader = new();
-        LevelClientMiniMapAsset? asset = loader.LoadForLevel(_rootPath, "pvp_01");
+        LevelClientMiniMapAsset? asset = loader.LoadForLevel(new Arrowgene.MonsterHunterOnline.ClientTools.FileProvider.DirectoryFileProvider(_rootPath), "pvp_01");
 
         Assert.NotNull(asset);
         Assert.Equal("level_pvp01", asset!.AssetName);

@@ -1,6 +1,9 @@
 using System;
+using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Xml.Linq;
 using Arrowgene.MonsterHunterOnline.ClientTools.Flash;
@@ -263,6 +266,19 @@ internal static class MinimapFlaSceneReader
             }
 
             byte[]? imageData = TryReadArchiveEntry(entryName);
+
+            // When the LIBRARY/ PNG is missing or empty, fall back to Flash's
+            // internal binary bitmap data (bin/*.dat referenced by bitmapDataHRef).
+            if ((imageData == null || imageData.Length == 0) &&
+                mediaItem?.BitmapDataEntryName != null)
+            {
+                byte[]? datBytes = TryReadArchiveEntry(mediaItem.BitmapDataEntryName);
+                if (datBytes != null)
+                {
+                    imageData = TryDecodeFlashBitmapData(datBytes);
+                }
+            }
+
             if (imageData == null || imageData.Length == 0)
             {
                 return null;
@@ -378,7 +394,11 @@ internal static class MinimapFlaSceneReader
 
                 float width = ParseFloat(bitmapItem.Attribute("frameRight")?.Value) / 20f;
                 float height = ParseFloat(bitmapItem.Attribute("frameBottom")?.Value) / 20f;
-                items[name] = new MediaItem(name, NormalizeArchivePath($"LIBRARY/{bitmapItem.Attribute("href")?.Value ?? name}"), width, height);
+                string? bitmapDataHRef = bitmapItem.Attribute("bitmapDataHRef")?.Value;
+                string? bitmapDataEntry = !string.IsNullOrWhiteSpace(bitmapDataHRef)
+                    ? NormalizeArchivePath($"bin/{bitmapDataHRef}")
+                    : null;
+                items[name] = new MediaItem(name, NormalizeArchivePath($"LIBRARY/{bitmapItem.Attribute("href")?.Value ?? name}"), width, height, bitmapDataEntry);
             }
 
             return items;
@@ -489,11 +509,162 @@ internal static class MinimapFlaSceneReader
             return width > 0 && height > 0;
         }
 
+        /// <summary>
+        /// Decodes Flash CS5's internal binary bitmap format (bin/*.dat in FLA archives)
+        /// into a PNG byte array. Format: 32-byte header (format, stride, width, height, ...)
+        /// followed by raw-deflate compressed premultiplied ARGB pixel data.
+        /// </summary>
+        private static byte[]? TryDecodeFlashBitmapData(byte[] dat)
+        {
+            if (dat.Length < 36)
+            {
+                return null;
+            }
+
+            ushort width = BinaryPrimitives.ReadUInt16LittleEndian(dat.AsSpan(4));
+            ushort height = BinaryPrimitives.ReadUInt16LittleEndian(dat.AsSpan(6));
+            if (width == 0 || height == 0 || width > 8192 || height > 8192)
+            {
+                return null;
+            }
+
+            // Pixel data starts at offset 32, compressed with raw deflate.
+            byte[] argbPixels;
+            try
+            {
+                using MemoryStream compressedStream = new(dat, 32, dat.Length - 32);
+                using DeflateStream deflate = new(compressedStream, CompressionMode.Decompress);
+                using MemoryStream output = new(width * height * 4);
+                deflate.CopyTo(output);
+                argbPixels = output.ToArray();
+            }
+            catch
+            {
+                return null;
+            }
+
+            int stride = width * 4;
+            int expectedBytes = stride * height;
+            int availableRows = Math.Min(height, argbPixels.Length / stride);
+            if (availableRows <= 0)
+            {
+                return null;
+            }
+
+            // Encode as PNG: convert premultiplied ARGB → standard RGBA.
+            return EncodePng(width, availableRows, argbPixels, stride);
+        }
+
+        private static byte[] EncodePng(int width, int height, byte[] argbPixels, int srcStride)
+        {
+            // Build unfiltered PNG image data (filter byte 0 per row + RGBA pixels).
+            int rowBytes = 1 + width * 4;
+            byte[] raw = new byte[rowBytes * height];
+            for (int y = 0; y < height; y++)
+            {
+                int dstRow = y * rowBytes;
+                raw[dstRow] = 0; // filter: none
+                int srcRow = y * srcStride;
+                for (int x = 0; x < width; x++)
+                {
+                    int srcOff = srcRow + x * 4;
+                    int dstOff = dstRow + 1 + x * 4;
+                    byte a = argbPixels[srcOff];
+                    byte r = argbPixels[srcOff + 1];
+                    byte g = argbPixels[srcOff + 2];
+                    byte b = argbPixels[srcOff + 3];
+
+                    // Un-premultiply
+                    if (a > 0 && a < 255)
+                    {
+                        r = (byte)Math.Min(255, r * 255 / a);
+                        g = (byte)Math.Min(255, g * 255 / a);
+                        b = (byte)Math.Min(255, b * 255 / a);
+                    }
+
+                    raw[dstOff] = r;
+                    raw[dstOff + 1] = g;
+                    raw[dstOff + 2] = b;
+                    raw[dstOff + 3] = a;
+                }
+            }
+
+            byte[] compressedPixels;
+            using (MemoryStream ms = new())
+            {
+                using (ZLibStream zlib = new(ms, CompressionLevel.Fastest, true))
+                {
+                    zlib.Write(raw);
+                }
+
+                compressedPixels = ms.ToArray();
+            }
+
+            // Minimal PNG: signature + IHDR + IDAT + IEND
+            using MemoryStream png = new();
+            png.Write([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);
+
+            byte[] ihdr = new byte[13];
+            BinaryPrimitives.WriteInt32BigEndian(ihdr.AsSpan(0), width);
+            BinaryPrimitives.WriteInt32BigEndian(ihdr.AsSpan(4), height);
+            ihdr[8] = 8;  // bit depth
+            ihdr[9] = 6;  // color type: RGBA
+            WritePngChunk(png, "IHDR"u8, ihdr);
+            WritePngChunk(png, "IDAT"u8, compressedPixels);
+            WritePngChunk(png, "IEND"u8, []);
+
+            return png.ToArray();
+        }
+
+        private static void WritePngChunk(Stream output, ReadOnlySpan<byte> type, ReadOnlySpan<byte> data)
+        {
+            Span<byte> buf = stackalloc byte[4];
+            BinaryPrimitives.WriteInt32BigEndian(buf, data.Length);
+            output.Write(buf);
+            output.Write(type);
+            output.Write(data);
+
+            // CRC32 over type + data (using System.IO.Hashing)
+            uint crc = 0xFFFFFFFF;
+            foreach (byte b in type)
+            {
+                crc = CrcTable[(crc ^ b) & 0xFF] ^ (crc >> 8);
+            }
+
+            foreach (byte b in data)
+            {
+                crc = CrcTable[(crc ^ b) & 0xFF] ^ (crc >> 8);
+            }
+
+            crc ^= 0xFFFFFFFF;
+            BinaryPrimitives.WriteUInt32BigEndian(buf, crc);
+            output.Write(buf);
+        }
+
+        private static readonly uint[] CrcTable = BuildCrcTable();
+
+        private static uint[] BuildCrcTable()
+        {
+            uint[] table = new uint[256];
+            for (uint n = 0; n < 256; n++)
+            {
+                uint c = n;
+                for (int k = 0; k < 8; k++)
+                {
+                    c = (c & 1) != 0 ? 0xEDB88320 ^ (c >> 1) : c >> 1;
+                }
+
+                table[n] = c;
+            }
+
+            return table;
+        }
+
         private static string NormalizeArchivePath(string path)
         {
             return path.Replace('\\', '/');
         }
 
-        private sealed record MediaItem(string Name, string EntryName, float Width, float Height);
+        private sealed record MediaItem(string Name, string EntryName, float Width, float Height, string? BitmapDataEntryName);
     }
 }

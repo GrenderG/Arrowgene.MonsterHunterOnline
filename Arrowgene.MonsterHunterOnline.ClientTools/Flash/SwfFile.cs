@@ -77,6 +77,11 @@ public sealed class SwfFile
         return Open(path, File.ReadAllBytes(path));
     }
 
+    public static SwfFile Open(byte[] data, string name = "(memory)")
+    {
+        return Open(name, data);
+    }
+
     public byte[] GetUncompressedBytes()
     {
         return (byte[])_uncompressedBytes.Clone();

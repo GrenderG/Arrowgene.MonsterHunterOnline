@@ -1,20 +1,33 @@
 ﻿using Avalonia;
 using System;
 using System.Text;
+using Arrowgene.Logging;
 using Arrowgene.MonsterHunterOnline.UI.Infrastructure;
 
 namespace Arrowgene.MonsterHunterOnline.UI;
 
 sealed class Program
 {
-    // Initialization code. Don't use any Avalonia, third-party APIs or any
-    // SynchronizationContext-reliant code before AppMain is called: things aren't initialized
-    // yet and stuff might break.
     [STAThread]
     public static void Main(string[] args)
     {
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
         GlobalExceptionHandler.Register();
+
+        LogProvider.OnLogWrite += (_, e) =>
+        {
+            Log log = e.Log;
+            ConsoleColor color = log.LogLevel switch
+            {
+                LogLevel.Error => ConsoleColor.Red,
+                LogLevel.Info => ConsoleColor.Cyan,
+                _ => ConsoleColor.Gray,
+            };
+            Console.ForegroundColor = color;
+            Console.WriteLine($"[{log.LogLevel}] {log.LoggerIdentity}: {log.Text}");
+            Console.ResetColor();
+        };
+        LogProvider.Start();
 
         try
         {

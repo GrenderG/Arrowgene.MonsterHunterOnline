@@ -119,26 +119,6 @@ public partial class IIPSArchiveFileExplorer : UserControl
         return null;
     }
 
-    private async void OpenArchiveClick(object? sender, RoutedEventArgs e)
-    {
-        string? path = await PickFileAsync("Open IIPS archive", CreateArchiveFileTypes());
-
-        if (!string.IsNullOrEmpty(path))
-        {
-            ViewModel.TryOpenArchive(path);
-        }
-    }
-
-    private async void OpenFileListClick(object? sender, RoutedEventArgs e)
-    {
-        string? path = await PickFileAsync("Open IIPS file list", CreateFileListFileTypes());
-
-        if (!string.IsNullOrEmpty(path))
-        {
-            ViewModel.TryOpenFileList(path);
-        }
-    }
-
     private void SaveArchiveClick(object? sender, RoutedEventArgs e)
     {
         ViewModel.TrySaveArchive();
@@ -281,25 +261,4 @@ public partial class IIPSArchiveFileExplorer : UserControl
         return folders.Count == 0 ? null : folders[0].TryGetLocalPath();
     }
 
-    private static IReadOnlyList<FilePickerFileType> CreateArchiveFileTypes()
-    {
-        return
-        [
-            new FilePickerFileType("IIPS Archive")
-            {
-                Patterns = ["*.iips", "*.ifs", "*.mpq"]
-            }
-        ];
-    }
-
-    private static IReadOnlyList<FilePickerFileType> CreateFileListFileTypes()
-    {
-        return
-        [
-            new FilePickerFileType("IIPS File List")
-            {
-                Patterns = ["*.lst"]
-            }
-        ];
-    }
 }

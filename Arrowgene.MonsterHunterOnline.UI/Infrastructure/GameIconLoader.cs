@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Arrowgene.Logging;
 using Arrowgene.MonsterHunterOnline.ClientTools.FileProvider;
 using Avalonia.Media.Imaging;
 
@@ -12,6 +13,8 @@ namespace Arrowgene.MonsterHunterOnline.UI.Infrastructure;
 /// </summary>
 public sealed class GameIconLoader
 {
+    private static readonly ILogger Logger = LogProvider.Logger(typeof(GameIconLoader));
+
     private readonly Dictionary<string, Bitmap?> _cache = [];
     private IFileProvider? _provider;
 
@@ -34,6 +37,17 @@ public sealed class GameIconLoader
                 _monsterIconPaths[id] = file;
             }
         }
+
+        Logger.Info($"GameIconLoader initialized: {_monsterIconPaths.Count} monster icons indexed, provider={provider.GetType().Name}");
+
+        // Quick probe: check if the item icon directory has any files
+        int itemIconCount = 0;
+        foreach (string _ in provider.EnumerateFiles("libs/ui/flashassets/images/icon", "*.png"))
+        {
+            itemIconCount++;
+            if (itemIconCount >= 3) break; // just probe a few
+        }
+        Logger.Info($"GameIconLoader item icon probe: found {(itemIconCount >= 3 ? "3+" : itemIconCount.ToString())} PNGs");
     }
 
     /// <summary>
@@ -76,12 +90,24 @@ public sealed class GameIconLoader
 
     private Bitmap? LoadBitmap(string relativePath)
     {
-        if (_provider == null || !_provider.Exists(relativePath)) return null;
+        if (_provider == null) return null;
+        if (!_provider.Exists(relativePath))
+        {
+            Logger.Debug($"Icon not found: {relativePath}");
+            return null;
+        }
+
         try
         {
-            using Stream stream = _provider.OpenRead(relativePath);
-            return new Bitmap(stream);
+            byte[] data = _provider.ReadAllBytes(relativePath);
+            // Do not dispose the MemoryStream — Avalonia Bitmap may hold a reference to it
+            MemoryStream ms = new(data, writable: false);
+            return new Bitmap(ms);
         }
-        catch { return null; }
+        catch (Exception ex)
+        {
+            Logger.Error($"Failed to load icon {relativePath}: {ex.Message}");
+            return null;
+        }
     }
 }

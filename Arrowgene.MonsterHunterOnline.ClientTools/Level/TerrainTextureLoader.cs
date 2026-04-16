@@ -18,34 +18,23 @@ public sealed class TerrainTextureLoader
     /// Reads terrain dimensions from the terrain.dat header.
     /// Returns (nHeightMapSize_InUnits, nUnitSize_InMeters).
     /// </summary>
-    public static (int HeightmapSize, int UnitSize) ReadTerrainInfo(string terrainDatPath)
+    public static (int HeightmapSize, int UnitSize) ReadTerrainInfo(byte[] terrainDatData)
     {
-        if (!File.Exists(terrainDatPath)) return (0, 1);
-        byte[] hdr = new byte[32];
-        using var fs = File.OpenRead(terrainDatPath);
-        if (fs.Read(hdr, 0, 32) < 32) return (0, 1);
-        int heightmapSize = BitConverter.ToInt32(hdr, 8);  // nHeightMapSize_InUnits
-        int unitSize = BitConverter.ToInt32(hdr, 12);       // nUnitSize_InMeters
+        if (terrainDatData.Length < 32) return (0, 1);
+        int heightmapSize = BitConverter.ToInt32(terrainDatData, 8);
+        int unitSize = BitConverter.ToInt32(terrainDatData, 12);
         if (unitSize < 1) unitSize = 1;
         return (heightmapSize, unitSize);
     }
 
-    /// <summary>
-    /// Loads cover.ctc and returns a composite BGRA terrain texture.
-    /// The output image has Y=0 at the top (screen coords), matching flipped world Y.
-    /// </summary>
-    public byte[]? LoadTexture(string coverCtcPath, int terrainWorldSize, out int width, out int height)
+    public byte[]? LoadTexture(byte[] coverCtcData, int terrainWorldSize, out int width, out int height)
     {
         width = 0;
         height = 0;
 
-        if (!File.Exists(coverCtcPath))
-            return null;
-
         try
         {
-            byte[] data = File.ReadAllBytes(coverCtcPath);
-            return ParseCoverCtc(data, terrainWorldSize, out width, out height);
+            return ParseCoverCtc(coverCtcData, terrainWorldSize, out width, out height);
         }
         catch (Exception ex)
         {
