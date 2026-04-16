@@ -14,7 +14,7 @@ public static class SystemUnlock
     {
         ulong systemUnlockvalue = 0;
 
-        string staticFolder = Path.Combine(Util.ExecutingDirectory(), "Files\\Static");
+        string staticFolder = Path.Combine(Util.ExecutingDirectory(), "Files", "Static");
         string csvPath = Path.Combine(staticFolder, "SystemUnlock.csv");
         using (TextFieldParser parser = new TextFieldParser(csvPath))
         {

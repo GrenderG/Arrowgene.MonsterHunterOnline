@@ -66,7 +66,7 @@ public class InstanceVerifyReqHandler : CsProtoStructureHandler<InstanceVerifyRe
         playerInitInfo.Structure.Pose.t.y = 346.80392f;
         playerInitInfo.Structure.Pose.t.z = 205.375f;
 
-        string staticFolder = Path.Combine(Util.ExecutingDirectory(), "Files\\Static");
+        string staticFolder = Path.Combine(Util.ExecutingDirectory(), "Files", "Static");
         string csvSpawnPointsPath = Path.Combine(staticFolder, "SpawnPoints.csv");
         //int level = client.State.levelId;
         int level = req.ServiceId;

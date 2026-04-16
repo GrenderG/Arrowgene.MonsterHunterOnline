@@ -57,7 +57,7 @@ public class LeaveInstanceReqHandler : CsProtoStructureHandler<LeaveInstanceReq>
         instanceInitInfo.WarningFlag = 0;
         instanceInitInfo.CreatePlayerMaxLv = 99;
 
-        string staticFolder = Path.Combine(Util.ExecutingDirectory(), "Files\\Static");
+        string staticFolder = Path.Combine(Util.ExecutingDirectory(), "Files", "Static");
         string csvSpawnPointsPath = Path.Combine(staticFolder, "SpawnPoints.csv");
         //int level = client.State.levelId;
         int level = instanceInitInfo.LevelId;

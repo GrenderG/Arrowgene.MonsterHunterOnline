@@ -17,7 +17,7 @@ public class ChangeTownInstanceReqHandler : CsProtoStructureHandler<ChangeTownIn
 
     public override void Handle(Client client, ChangeTownInstanceReq req)
     {
-        string staticFolder = Path.Combine(Util.ExecutingDirectory(), "Files\\Static");
+        string staticFolder = Path.Combine(Util.ExecutingDirectory(), "Files", "Static");
         string csvPath = Path.Combine(staticFolder, "ChangeTown.csv");
         //Logger.Info($"staticfolder:{staticFolder}\n csvpath:{csvPath}");
         int level = req.LevelId;

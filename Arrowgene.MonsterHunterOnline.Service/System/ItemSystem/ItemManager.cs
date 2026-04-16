@@ -62,7 +62,7 @@ public class ItemManager
 
     public int GetManufacturableItemId(int manufactureId)
     {
-        string staticFolder = Path.Combine(Util.ExecutingDirectory(), "Files\\Static");
+        string staticFolder = Path.Combine(Util.ExecutingDirectory(), "Files", "Static");
         string csvPath = Path.Combine(staticFolder, "ManufactureDataInfo.csv");
 
         using (TextFieldParser parser = new TextFieldParser(csvPath))
