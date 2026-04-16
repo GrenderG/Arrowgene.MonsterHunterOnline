@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <RootNamespace>Arrowgene.MonsterHunterOnline.Protocol</RootNamespace>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Arrowgene.Buffers" Version="1.0.2"/>
+        <PackageReference Include="Arrowgene.Logging" Version="1.2.1"/>
+    </ItemGroup>
+
+</Project>

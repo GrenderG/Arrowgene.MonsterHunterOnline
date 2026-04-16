@@ -1,0 +1,653 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:local="using:Arrowgene.MonsterHunterOnline.UI.Components"
+             x:Class="Arrowgene.MonsterHunterOnline.UI.Components.QuestViewer"
+             x:DataType="local:QuestViewerViewModel"
+             mc:Ignorable="d">
+
+    <Design.DataContext>
+        <local:QuestViewerViewModel />
+    </Design.DataContext>
+
+    <UserControl.Resources>
+        <!-- Core palette -->
+        <SolidColorBrush x:Key="FgPrimary" Color="#0F172A" />
+        <SolidColorBrush x:Key="FgSecondary" Color="#334155" />
+        <SolidColorBrush x:Key="FgMuted" Color="#667085" />
+        <SolidColorBrush x:Key="FgOnDark" Color="#F9FAFB" />
+        <SolidColorBrush x:Key="BgPage" Color="#F2F1EC" />
+        <SolidColorBrush x:Key="BgPane" Color="#F8F7F4" />
+        <SolidColorBrush x:Key="BgSurface" Color="#FFFFFF" />
+        <SolidColorBrush x:Key="BgSurfaceAlt" Color="#ECE9E2" />
+        <SolidColorBrush x:Key="BgBar" Color="#E8E5DE" />
+        <SolidColorBrush x:Key="BgDark" Color="#111827" />
+        <SolidColorBrush x:Key="BgInput" Color="#1F2937" />
+        <SolidColorBrush x:Key="BorderDefault" Color="#D7D3CC" />
+        <SolidColorBrush x:Key="BorderSubtle" Color="#E2E8F0" />
+        <SolidColorBrush x:Key="BorderDark" Color="#374151" />
+        <SolidColorBrush x:Key="Splitter" Color="#DDD9D1" />
+
+        <!-- Tag row palettes – warm-shifted to match the neutral theme -->
+        <SolidColorBrush x:Key="TagObjectiveBg" Color="#EDE9E0" />
+        <SolidColorBrush x:Key="TagObjectiveFg" Color="#3D3929" />
+        <SolidColorBrush x:Key="TagRewardBg" Color="#E8DFD2" />
+        <SolidColorBrush x:Key="TagRewardFg" Color="#5C4223" />
+        <SolidColorBrush x:Key="TagPreRewardBg" Color="#E5E0D5" />
+        <SolidColorBrush x:Key="TagPreRewardFg" Color="#4A4330" />
+        <SolidColorBrush x:Key="TagLootBg" Color="#E3DED6" />
+        <SolidColorBrush x:Key="TagLootFg" Color="#3B3628" />
+        <SolidColorBrush x:Key="TagRequirementBg" Color="#DDD9CF" />
+        <SolidColorBrush x:Key="TagRequirementFg" Color="#33301F" />
+
+        <!-- Badge pill variants -->
+        <SolidColorBrush x:Key="BadgeWarningBg" Color="#E8DFD2" />
+        <SolidColorBrush x:Key="BadgeWarningFg" Color="#6B4E2A" />
+
+        <!-- Flag colours -->
+        <SolidColorBrush x:Key="FlagOnBg" Color="#DDD9CF" />
+        <SolidColorBrush x:Key="FlagOffBg" Color="#EDEAE4" />
+
+        <!-- Chain graph node colours -->
+        <SolidColorBrush x:Key="ChainNodeBg" Color="#FFFFFF" />
+        <SolidColorBrush x:Key="ChainNodeSelectedBg" Color="#E8E5DE" />
+        <SolidColorBrush x:Key="ChainNodeBorder" Color="#D7D3CC" />
+        <SolidColorBrush x:Key="ChainNodeSelectedBorder" Color="#0F172A" />
+    </UserControl.Resources>
+
+    <UserControl.Styles>
+        <!-- ─── Shared layout classes ─── -->
+        <Style Selector="Border.pane">
+            <Setter Property="Background" Value="{StaticResource BgPane}" />
+            <Setter Property="BorderBrush" Value="{StaticResource BorderDefault}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="Padding" Value="12" />
+        </Style>
+
+        <Style Selector="Border.pill">
+            <Setter Property="Background" Value="{StaticResource BgSurfaceAlt}" />
+            <Setter Property="CornerRadius" Value="999" />
+            <Setter Property="Padding" Value="10,4" />
+        </Style>
+
+        <Style Selector="Border.pill-warn">
+            <Setter Property="Background" Value="{StaticResource BadgeWarningBg}" />
+            <Setter Property="CornerRadius" Value="999" />
+            <Setter Property="Padding" Value="10,4" />
+        </Style>
+
+        <Style Selector="Border.card">
+            <Setter Property="Background" Value="{StaticResource BgSurface}" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="12,8" />
+            <Setter Property="BorderBrush" Value="{StaticResource BorderSubtle}" />
+            <Setter Property="BorderThickness" Value="1" />
+        </Style>
+
+        <!-- ─── Text classes ─── -->
+        <Style Selector="TextBlock.caption">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Foreground" Value="{StaticResource FgMuted}" />
+        </Style>
+
+        <Style Selector="TextBlock.detail-label">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Foreground" Value="{StaticResource FgMuted}" />
+            <Setter Property="MinWidth" Value="90" />
+        </Style>
+
+        <Style Selector="TextBlock.detail-value">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="{StaticResource FgPrimary}" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+
+        <Style Selector="TextBlock.section-title">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{StaticResource FgPrimary}" />
+            <Setter Property="Margin" Value="0,14,0,4" />
+        </Style>
+
+        <Style Selector="TextBlock.pill-text">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{StaticResource FgSecondary}" />
+        </Style>
+
+        <!-- ─── Button ─── -->
+        <Style Selector="Button.toolbar-text">
+            <Setter Property="Padding" Value="12,6" />
+            <Setter Property="MinHeight" Value="34" />
+        </Style>
+
+        <Style Selector="Button.toggle-view">
+            <Setter Property="Padding" Value="12,5" />
+            <Setter Property="MinHeight" Value="0" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Background" Value="{StaticResource BgDark}" />
+            <Setter Property="Foreground" Value="{StaticResource FgOnDark}" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+        <Style Selector="Button.toggle-view /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{StaticResource BgDark}" />
+            <Setter Property="CornerRadius" Value="6" />
+        </Style>
+        <Style Selector="Button.toggle-view:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#1F2937" />
+        </Style>
+        <Style Selector="Button.toggle-view:pressed /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#374151" />
+        </Style>
+
+        <!-- ─── Tag row classes (list items) ─── -->
+        <Style Selector="Border.tag-objective">
+            <Setter Property="Background" Value="{StaticResource TagObjectiveBg}" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Padding" Value="10,6" />
+            <Setter Property="Margin" Value="0,2" />
+        </Style>
+        <Style Selector="Border.tag-objective > TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource TagObjectiveFg}" />
+        </Style>
+
+        <Style Selector="Border.tag-reward">
+            <Setter Property="Background" Value="{StaticResource TagRewardBg}" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Padding" Value="10,6" />
+            <Setter Property="Margin" Value="0,2" />
+        </Style>
+        <Style Selector="Border.tag-reward > TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource TagRewardFg}" />
+        </Style>
+
+        <Style Selector="Border.tag-prereward">
+            <Setter Property="Background" Value="{StaticResource TagPreRewardBg}" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Padding" Value="10,6" />
+            <Setter Property="Margin" Value="0,2" />
+        </Style>
+        <Style Selector="Border.tag-prereward > TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource TagPreRewardFg}" />
+        </Style>
+
+        <Style Selector="Border.tag-loot">
+            <Setter Property="Background" Value="{StaticResource TagLootBg}" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Padding" Value="10,6" />
+            <Setter Property="Margin" Value="0,2" />
+        </Style>
+        <Style Selector="Border.tag-loot > TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource TagLootFg}" />
+        </Style>
+
+        <Style Selector="Border.tag-requirement">
+            <Setter Property="Background" Value="{StaticResource TagRequirementBg}" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Padding" Value="10,6" />
+            <Setter Property="Margin" Value="0,2" />
+        </Style>
+        <Style Selector="Border.tag-requirement > TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource TagRequirementFg}" />
+        </Style>
+
+        <!-- ─── Flag chips ─── -->
+        <Style Selector="Border.flag">
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Padding" Value="8,3" />
+            <Setter Property="Margin" Value="0,0,6,4" />
+        </Style>
+
+        <Style Selector="Border.flag > TextBlock">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Foreground" Value="{StaticResource FgSecondary}" />
+        </Style>
+    </UserControl.Styles>
+
+    <Border Background="{StaticResource BgPage}">
+        <DockPanel LastChildFill="True">
+
+            <!-- ═══ Filter bar ═══ -->
+            <Border DockPanel.Dock="Top"
+                    Background="{StaticResource BgBar}"
+                    BorderBrush="{StaticResource BorderDefault}"
+                    BorderThickness="0,0,0,1"
+                    Padding="16,8"
+                    IsVisible="{Binding HasQuests}">
+                <StackPanel Orientation="Horizontal" Spacing="12">
+                    <TextBox x:Name="FilterBox"
+                             Text="{Binding FilterText, Mode=TwoWay}"
+                             Watermark="Search by ID or name..."
+                             Width="220"
+                             MinHeight="28"
+                             Padding="8,4"
+                             FontSize="11" />
+
+                    <TextBlock Text="Source:"
+                               FontSize="11"
+                               FontWeight="SemiBold"
+                               Foreground="{StaticResource FgSecondary}"
+                               VerticalAlignment="Center" />
+                    <ComboBox ItemsSource="{Binding SourceFilters}"
+                              SelectedItem="{Binding SelectedSourceFilter}"
+                              MinHeight="28"
+                              Padding="8,4"
+                              FontSize="11" />
+
+                    <TextBlock Text="Type:"
+                               FontSize="11"
+                               FontWeight="SemiBold"
+                               Foreground="{StaticResource FgSecondary}"
+                               VerticalAlignment="Center" />
+                    <ComboBox ItemsSource="{Binding TypeFilters}"
+                              SelectedItem="{Binding SelectedTypeFilter}"
+                              MinHeight="28"
+                              Padding="8,4"
+                              FontSize="11" />
+
+                    <Border Width="1" Height="20" Background="{StaticResource BorderDark}" VerticalAlignment="Center" />
+
+                    <Border Classes="pill">
+                        <TextBlock Text="{Binding Quests.Count, StringFormat='{}{0} quests'}"
+                                   Classes="pill-text" />
+                    </Border>
+                </StackPanel>
+            </Border>
+
+            <!-- ═══ Status bar ═══ -->
+            <Border DockPanel.Dock="Bottom"
+                    Background="{StaticResource BgPane}"
+                    BorderBrush="{StaticResource BorderDefault}"
+                    BorderThickness="0,1,0,0"
+                    Padding="12,8">
+                <TextBlock Text="{Binding StatusText}"
+                           MaxLines="1"
+                           TextTrimming="CharacterEllipsis"
+                           Foreground="{StaticResource FgSecondary}"
+                           ToolTip.Tip="{Binding StatusText}" />
+            </Border>
+
+            <!-- ═══ Main content ═══ -->
+            <Grid ColumnDefinitions="350,6,*" MinHeight="0">
+
+                <!-- ── Quest list ── -->
+                <Border Grid.Column="0"
+                        Classes="pane"
+                        Margin="12,12,6,12"
+                        MinHeight="0">
+                    <Grid RowDefinitions="Auto,*" MinHeight="0">
+                        <StackPanel Grid.Row="0" Spacing="2" Margin="0,0,0,8">
+                            <TextBlock Text="Quests"
+                                       FontSize="14"
+                                       FontWeight="SemiBold"
+                                       Foreground="{StaticResource FgPrimary}" />
+                            <TextBlock Text="{Binding Quests.Count, StringFormat='{}{0} quests loaded'}"
+                                       Classes="caption" />
+                        </StackPanel>
+
+                        <Border Grid.Row="1"
+                                Background="{StaticResource BgSurface}"
+                                BorderBrush="{StaticResource BorderDefault}"
+                                BorderThickness="1"
+                                CornerRadius="10"
+                                Padding="4"
+                                MinHeight="0">
+                            <ListBox ItemsSource="{Binding Quests}"
+                                     SelectedItem="{Binding SelectedQuest, Mode=TwoWay}"
+                                     Background="Transparent"
+                                     BorderThickness="0"
+                                     MinHeight="0">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate x:DataType="local:QuestListItemViewModel">
+                                        <StackPanel Margin="4,3">
+                                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                                <TextBlock Text="{Binding Id, StringFormat='#{0}'}"
+                                                           Foreground="{StaticResource FgMuted}"
+                                                           FontSize="11"
+                                                           VerticalAlignment="Center" />
+                                                <TextBlock Text="{Binding Name}"
+                                                           FontWeight="SemiBold"
+                                                           Foreground="{StaticResource FgPrimary}"
+                                                           FontSize="13" />
+                                            </StackPanel>
+                                            <TextBlock Text="{Binding Summary}"
+                                                       Foreground="{StaticResource FgMuted}"
+                                                       FontSize="11" />
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </Border>
+                    </Grid>
+                </Border>
+
+                <!-- Splitter -->
+                <GridSplitter Grid.Column="1"
+                              Width="6"
+                              Background="{StaticResource Splitter}"
+                              ShowsPreview="True"
+                              HorizontalAlignment="Stretch"
+                              VerticalAlignment="Stretch" />
+
+                <!-- ── Quest detail / graph ── -->
+                <Border Grid.Column="2"
+                        Classes="pane"
+                        Margin="0,12,12,12"
+                        MinHeight="0">
+                    <Grid RowDefinitions="Auto,*" IsVisible="{Binding HasSelection}">
+
+                        <!-- View toggle bar -->
+                        <Border Grid.Row="0"
+                                Background="{StaticResource BgSurfaceAlt}"
+                                CornerRadius="8"
+                                Padding="4"
+                                Margin="0,0,0,10">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding DetailName}"
+                                               FontSize="13"
+                                               FontWeight="SemiBold"
+                                               Foreground="{StaticResource FgPrimary}"
+                                               MaxLines="1"
+                                               TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Text="{Binding ChainSummary}"
+                                               FontSize="11"
+                                               Foreground="{StaticResource FgMuted}"
+                                               VerticalAlignment="Center"
+                                               IsVisible="{Binding IsGraphView}" />
+                                </StackPanel>
+                                <Button Grid.Column="1"
+                                        Classes="toggle-view"
+                                        Command="{Binding ToggleGraphViewCommand}">
+                                    <TextBlock Text="{Binding IsGraphView, Converter={x:Static local:QuestViewer.ViewToggleLabelConverter}}"
+                                               FontSize="11"
+                                               FontWeight="SemiBold"
+                                               Foreground="{StaticResource FgOnDark}" />
+                                </Button>
+                            </Grid>
+                        </Border>
+
+                        <!-- ═══ DETAIL VIEW ═══ -->
+                        <ScrollViewer Grid.Row="1" IsVisible="{Binding !IsGraphView}">
+                        <StackPanel Spacing="4" Margin="4">
+
+                            <!-- Title -->
+                            <TextBlock Text="{Binding DetailName}"
+                                       FontSize="20"
+                                       FontWeight="Bold"
+                                       Foreground="{StaticResource FgPrimary}"
+                                       TextWrapping="Wrap" />
+
+                            <!-- ID / Type / Source badges -->
+                            <WrapPanel Orientation="Horizontal" Margin="0,4,0,8">
+                                <Border Classes="pill" Margin="0,0,8,4">
+                                    <TextBlock Text="{Binding DetailId, StringFormat='ID: {0}'}"
+                                               Classes="pill-text" />
+                                </Border>
+                                <Border Classes="pill" Margin="0,0,8,4"
+                                        IsVisible="{Binding DetailTypeLabel, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                                    <TextBlock Text="{Binding DetailTypeLabel}"
+                                               Classes="pill-text" />
+                                </Border>
+                                <Border Classes="pill" Margin="0,0,8,4"
+                                        IsVisible="{Binding DetailSourceFile, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                                    <TextBlock Text="{Binding DetailSourceFile}"
+                                               Classes="pill-text" />
+                                </Border>
+                                <Border Classes="pill-warn" Margin="0,0,8,4"
+                                        IsVisible="{Binding DetailInvalid}">
+                                    <TextBlock Text="INVALID" FontSize="11" FontWeight="Bold"
+                                               Foreground="{StaticResource BadgeWarningFg}" />
+                                </Border>
+                            </WrapPanel>
+
+                            <!-- Note / Description -->
+                            <TextBlock Text="{Binding DetailNote}"
+                                       FontSize="12"
+                                       Foreground="{StaticResource FgSecondary}"
+                                       TextWrapping="Wrap"
+                                       IsVisible="{Binding DetailNote, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                            <TextBlock Text="{Binding DetailDescription}"
+                                       FontSize="11"
+                                       Foreground="{StaticResource FgMuted}"
+                                       TextWrapping="Wrap"
+                                       Margin="0,4,0,0"
+                                       IsVisible="{Binding DetailDescription, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                            <TextBlock Text="{Binding DetailCompleteNote, StringFormat='Completion: {0}'}"
+                                       FontSize="11"
+                                       Foreground="{StaticResource FgMuted}"
+                                       FontStyle="Italic"
+                                       TextWrapping="Wrap"
+                                       Margin="0,2,0,0"
+                                       IsVisible="{Binding DetailCompleteNote, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+
+                            <!-- ── NPCs ── -->
+                            <TextBlock Classes="section-title" Text="NPCs" />
+                            <Border Classes="card">
+                                <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto"
+                                      ColumnSpacing="12" RowSpacing="6">
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Classes="detail-label" Text="Accept NPC" />
+                                    <TextBlock Grid.Row="0" Grid.Column="1" Classes="detail-value"
+                                               Text="{Binding DetailAcceptNpcDisplay}" />
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Classes="detail-label" Text="Submit NPC" />
+                                    <TextBlock Grid.Row="1" Grid.Column="1" Classes="detail-value"
+                                               Text="{Binding DetailSubmitNpcDisplay}" />
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Classes="detail-label" Text="Related NPC" />
+                                    <TextBlock Grid.Row="2" Grid.Column="1" Classes="detail-value"
+                                               Text="{Binding DetailRelatedNpcDisplay}" />
+                                </Grid>
+                            </Border>
+
+                            <!-- ── Properties ── -->
+                            <TextBlock Classes="section-title" Text="Properties" />
+                            <Border Classes="card">
+                                <Grid ColumnDefinitions="Auto,*,Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto"
+                                      ColumnSpacing="8" RowSpacing="6">
+
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Classes="detail-label" Text="Star" />
+                                    <TextBlock Grid.Row="0" Grid.Column="1" Classes="detail-value"
+                                               Text="{Binding DetailStar}" />
+                                    <TextBlock Grid.Row="0" Grid.Column="2" Classes="detail-label" Text="Stage" />
+                                    <TextBlock Grid.Row="0" Grid.Column="3" Classes="detail-value"
+                                               Text="{Binding DetailStage}" />
+
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Classes="detail-label" Text="Chapter" />
+                                    <TextBlock Grid.Row="1" Grid.Column="1" Classes="detail-value"
+                                               Text="{Binding DetailChapterName}" />
+                                    <TextBlock Grid.Row="1" Grid.Column="2" Classes="detail-label" Text="Series" />
+                                    <TextBlock Grid.Row="1" Grid.Column="3" Classes="detail-value"
+                                               Text="{Binding DetailSeriesName}" />
+
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Classes="detail-label" Text="Group" />
+                                    <TextBlock Grid.Row="2" Grid.Column="1" Classes="detail-value"
+                                               Text="{Binding DetailGroupName}" />
+                                    <TextBlock Grid.Row="2" Grid.Column="2" Classes="detail-label" Text="Library" />
+                                    <TextBlock Grid.Row="2" Grid.Column="3" Classes="detail-value"
+                                               Text="{Binding DetailLibraryName}" />
+
+                                    <TextBlock Grid.Row="3" Grid.Column="0" Classes="detail-label" Text="Pre-Quest" />
+                                    <TextBlock Grid.Row="3" Grid.Column="1" Classes="detail-value"
+                                               Text="{Binding DetailPreTaskDisplay}" />
+                                    <TextBlock Grid.Row="3" Grid.Column="2" Classes="detail-label" Text="Timeout" />
+                                    <TextBlock Grid.Row="3" Grid.Column="3" Classes="detail-value"
+                                               Text="{Binding DetailTimeout, StringFormat='{}{0}s'}" />
+
+                                    <TextBlock Grid.Row="4" Grid.Column="0" Classes="detail-label" Text="Type Code" />
+                                    <TextBlock Grid.Row="4" Grid.Column="1" Classes="detail-value"
+                                               Text="{Binding DetailType}" />
+                                    <TextBlock Grid.Row="4" Grid.Column="2" Classes="detail-label" Text="Group ID" />
+                                    <TextBlock Grid.Row="4" Grid.Column="3" Classes="detail-value"
+                                               Text="{Binding DetailGroup}" />
+
+                                    <TextBlock Grid.Row="5" Grid.Column="0" Classes="detail-label" Text="Series ID" />
+                                    <TextBlock Grid.Row="5" Grid.Column="1" Classes="detail-value"
+                                               Text="{Binding DetailSeries}" />
+                                    <TextBlock Grid.Row="5" Grid.Column="2" Classes="detail-label" Text="Chapter ID" />
+                                    <TextBlock Grid.Row="5" Grid.Column="3" Classes="detail-value"
+                                               Text="{Binding DetailChapterId}" />
+                                </Grid>
+                            </Border>
+
+                            <!-- ── Flags ── -->
+                            <TextBlock Classes="section-title" Text="Flags" />
+                            <WrapPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                <Border Classes="flag"
+                                        Background="{Binding DetailCanRepeat, Converter={x:Static local:QuestViewer.FlagBgConverter}}">
+                                    <TextBlock Text="Repeatable" />
+                                </Border>
+                                <Border Classes="flag"
+                                        Background="{Binding DetailCanShare, Converter={x:Static local:QuestViewer.FlagBgConverter}}">
+                                    <TextBlock Text="Shareable" />
+                                </Border>
+                                <Border Classes="flag"
+                                        Background="{Binding DetailAutoAccept, Converter={x:Static local:QuestViewer.FlagBgConverter}}">
+                                    <TextBlock Text="Auto Accept" />
+                                </Border>
+                                <Border Classes="flag"
+                                        Background="{Binding DetailAutoComplete, Converter={x:Static local:QuestViewer.FlagBgConverter}}">
+                                    <TextBlock Text="Auto Complete" />
+                                </Border>
+                                <Border Classes="flag"
+                                        Background="{Binding DetailIsAlone, Converter={x:Static local:QuestViewer.FlagBgConverter}}">
+                                    <TextBlock Text="Solo Only" />
+                                </Border>
+                                <Border Classes="flag"
+                                        Background="{Binding DetailCantGiveup, Converter={x:Static local:QuestViewer.FlagBgConverter}}">
+                                    <TextBlock Text="Can't Abandon" />
+                                </Border>
+                            </WrapPanel>
+
+                            <!-- ── Objectives ── -->
+                            <TextBlock Classes="section-title" Text="Objectives"
+                                       IsVisible="{Binding DetailContents.Count}" />
+                            <ItemsControl ItemsSource="{Binding DetailContents}"
+                                          IsVisible="{Binding DetailContents.Count}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Classes="tag-objective">
+                                            <TextBlock Text="{Binding}" FontSize="12" TextWrapping="Wrap" />
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+
+                            <!-- ── Rewards ── -->
+                            <TextBlock Classes="section-title" Text="Rewards"
+                                       IsVisible="{Binding DetailRewards.Count}" />
+                            <ItemsControl ItemsSource="{Binding DetailRewards}"
+                                          IsVisible="{Binding DetailRewards.Count}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Classes="tag-reward">
+                                            <TextBlock Text="{Binding}" FontSize="12" TextWrapping="Wrap" />
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+
+                            <!-- ── Pre-Rewards ── -->
+                            <TextBlock Classes="section-title" Text="Pre-Rewards (on accept)"
+                                       IsVisible="{Binding HasPreRewards}" />
+                            <ItemsControl ItemsSource="{Binding DetailPreRewards}"
+                                          IsVisible="{Binding HasPreRewards}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Classes="tag-prereward">
+                                            <TextBlock Text="{Binding}" FontSize="12" TextWrapping="Wrap" />
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+
+                            <!-- ── Quest Loot Drops ── -->
+                            <TextBlock Classes="section-title" Text="Quest Loot Drops"
+                                       IsVisible="{Binding HasLoot}" />
+                            <ItemsControl ItemsSource="{Binding DetailLoot}"
+                                          IsVisible="{Binding HasLoot}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Classes="tag-loot">
+                                            <TextBlock Text="{Binding}" FontSize="12" TextWrapping="Wrap" />
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+
+                            <!-- ── Accept Requirements ── -->
+                            <TextBlock Classes="section-title" Text="Accept Requirements"
+                                       IsVisible="{Binding DetailChecks.Count}" />
+                            <ItemsControl ItemsSource="{Binding DetailChecks}"
+                                          IsVisible="{Binding DetailChecks.Count}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Classes="tag-requirement">
+                                            <TextBlock Text="{Binding}" FontSize="12" TextWrapping="Wrap" />
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+
+                        </StackPanel>
+                    </ScrollViewer>
+
+                        <!-- ═══ GRAPH VIEW ═══ -->
+                        <ScrollViewer Grid.Row="1" IsVisible="{Binding IsGraphView}">
+                            <ItemsControl ItemsSource="{Binding ChainNodes}" Margin="16,4">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="local:QuestChainNodeViewModel">
+                                        <StackPanel>
+                                            <!-- Connector line above (except first node) -->
+                                            <Border Height="28"
+                                                    Width="2"
+                                                    Background="{StaticResource BorderDefault}"
+                                                    HorizontalAlignment="Center"
+                                                    IsVisible="{Binding ShowConnectorAbove}" />
+
+                                            <!-- Node card -->
+                                            <Button Command="{Binding $parent[ItemsControl].((local:QuestViewerViewModel)DataContext).NavigateToChainNodeCommand}"
+                                                    CommandParameter="{Binding Id}"
+                                                    HorizontalAlignment="Stretch"
+                                                    HorizontalContentAlignment="Stretch"
+                                                    Padding="0"
+                                                    Background="Transparent"
+                                                    BorderThickness="0"
+                                                    Cursor="Hand">
+                                                <Border CornerRadius="8"
+                                                        Padding="14,10"
+                                                        BorderThickness="2"
+                                                        BorderBrush="{Binding IsSelected, Converter={x:Static local:QuestViewer.ChainBorderConverter}}"
+                                                        Background="{Binding IsSelected, Converter={x:Static local:QuestViewer.ChainBgConverter}}">
+                                                    <StackPanel Spacing="2">
+                                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                                            <TextBlock Text="{Binding Id, StringFormat='#{0}'}"
+                                                                       FontSize="11"
+                                                                       Foreground="{StaticResource FgMuted}"
+                                                                       VerticalAlignment="Center" />
+                                                            <TextBlock Text="{Binding Name}"
+                                                                       FontSize="13"
+                                                                       FontWeight="{Binding IsSelected, Converter={x:Static local:QuestViewer.ChainWeightConverter}}"
+                                                                       Foreground="{StaticResource FgPrimary}"
+                                                                       TextWrapping="Wrap" />
+                                                        </StackPanel>
+                                                        <TextBlock Text="{Binding Subtitle}"
+                                                                   FontSize="11"
+                                                                   Foreground="{StaticResource FgMuted}"
+                                                                   IsVisible="{Binding Subtitle, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                                                    </StackPanel>
+                                                </Border>
+                                            </Button>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+
+                    </Grid>
+                </Border>
+            </Grid>
+        </DockPanel>
+    </Border>
+</UserControl>

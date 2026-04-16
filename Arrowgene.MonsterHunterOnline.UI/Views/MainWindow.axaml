@@ -1,0 +1,125 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Arrowgene.MonsterHunterOnline.UI.ViewModels"
+        xmlns:controls="using:Arrowgene.MonsterHunterOnline.UI.Components"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="1440" d:DesignHeight="900"
+        x:Class="Arrowgene.MonsterHunterOnline.UI.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Icon="/Assets/avalonia-logo.ico"
+        Width="1440"
+        Height="900"
+        MinWidth="1100"
+        MinHeight="720"
+        Background="#EEE8DD"
+        Title="{Binding Title}">
+
+    <Design.DataContext>
+        <vm:MainWindowViewModel/>
+    </Design.DataContext>
+
+    <Window.Styles>
+        <Style Selector="TabControl#MainTabs">
+            <Setter Property="Padding" Value="0" />
+        </Style>
+        <Style Selector="TabControl#MainTabs > TabItem">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Padding" Value="16,8" />
+            <Setter Property="Foreground" Value="#64748B" />
+        </Style>
+        <Style Selector="TabControl#MainTabs > TabItem:selected">
+            <Setter Property="Foreground" Value="#0F172A" />
+        </Style>
+        <Style Selector="TabControl#MainTabs > TabItem:pointerover">
+            <Setter Property="Foreground" Value="#334155" />
+        </Style>
+        <Style Selector="TabControl#MainTabs > TabItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Foreground" Value="#0F172A" />
+        </Style>
+        <Style Selector="TabControl#MainTabs > TabItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Foreground" Value="#334155" />
+        </Style>
+        <Style Selector="TabControl#MainTabs > TabItem:disabled">
+            <Setter Property="Opacity" Value="0.4" />
+        </Style>
+    </Window.Styles>
+
+    <DockPanel LastChildFill="True">
+
+        <!-- ═══ Shared toolbar ═══ -->
+        <Border DockPanel.Dock="Top"
+                Background="#111827"
+                Padding="16,10">
+            <Grid ColumnDefinitions="Auto,*,Auto">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <Button Content="Open"
+                            Click="OpenArchiveClick"
+                            Padding="12,6"
+                            MinHeight="34"
+                            ToolTip.Tip="Open a single IIPS archive (.ifs)"
+                            IsEnabled="{Binding !IsLoading}" />
+                    <Button Content="File List"
+                            Click="FileListClick"
+                            Padding="12,6"
+                            MinHeight="34"
+                            ToolTip.Tip="Open an IIPS file list (.lst)"
+                            IsEnabled="{Binding !IsLoading}" />
+                    <Button Content="Folder"
+                            Click="FolderClick"
+                            Padding="12,6"
+                            MinHeight="34"
+                            ToolTip.Tip="Open MHO client files directory"
+                            IsEnabled="{Binding !IsLoading}" />
+                    <Button x:Name="RecentButton"
+                            Content="Recent"
+                            Click="RecentClick"
+                            Padding="12,6"
+                            MinHeight="34"
+                            ToolTip.Tip="Open a recently used source"
+                            IsEnabled="{Binding !IsLoading}" />
+                </StackPanel>
+
+                <TextBlock Grid.Column="1"
+                           Text="{Binding DataSourceLabel}"
+                           Foreground="#94A3B8"
+                           FontSize="12"
+                           VerticalAlignment="Center"
+                           Margin="16,0"
+                           TextTrimming="CharacterEllipsis" />
+
+                <TextBlock Grid.Column="2"
+                           Text="Loading..."
+                           Foreground="#FBBF24"
+                           FontSize="12"
+                           FontWeight="SemiBold"
+                           VerticalAlignment="Center"
+                           IsVisible="{Binding IsLoading}" />
+            </Grid>
+        </Border>
+
+        <TabControl x:Name="MainTabs">
+            <TabItem Header="IIPS Archive Explorer">
+                <controls:IIPSArchiveFileExplorer x:Name="IIPSExplorer" />
+            </TabItem>
+            <TabItem Header="Level Map Viewer" IsEnabled="{Binding HasDataSource}">
+                <controls:LevelMapViewer x:Name="LevelMapControl" />
+            </TabItem>
+            <TabItem Header="Quest Viewer" IsEnabled="{Binding HasDataSource}">
+                <controls:QuestViewer x:Name="QuestControl" />
+            </TabItem>
+            <TabItem Header="Item Viewer" IsEnabled="{Binding HasDataSource}">
+                <controls:ItemViewer x:Name="ItemControl" />
+            </TabItem>
+            <TabItem Header="Entity Viewer" IsEnabled="{Binding HasDataSource}">
+                <controls:EntityViewer x:Name="EntityControl" />
+            </TabItem>
+            <TabItem Header="Crafting" IsEnabled="{Binding HasDataSource}">
+                <controls:CraftViewer x:Name="CraftControl" />
+            </TabItem>
+        </TabControl>
+
+    </DockPanel>
+
+</Window>

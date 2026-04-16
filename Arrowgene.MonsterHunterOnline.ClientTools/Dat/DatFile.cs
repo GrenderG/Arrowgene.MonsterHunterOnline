@@ -1,9 +1,10 @@
 ﻿using System.Collections.Generic;
+using System.Security.Cryptography;
 using System.Text;
 using Arrowgene.Buffers;
 using Arrowgene.Logging;
 
-namespace Arrowgene.MonsterHunterOnline.Service.IIPS;
+namespace Arrowgene.MonsterHunterOnline.ClientTools.Dat;
 
 public class DatFile
 {
@@ -35,6 +36,66 @@ public class DatFile
         TSV = 1
     }
 
+    private static readonly byte[] DatKey =
+    [
+        0x01, 0x09, 0x08, 0x00, 0x00, 0x02, 0x01, 0x06, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11,
+    ];
+
+    public static byte[] DecryptDat(byte[] data)
+    {
+        using Aes aes = Aes.Create();
+        aes.Mode = CipherMode.ECB;
+        aes.Padding = PaddingMode.None;
+        aes.Key = DatKey;
+        using ICryptoTransform encryptor = aes.CreateEncryptor();
+        return encryptor.TransformFinalBlock(data, 0, data.Length);
+    }
+
+    public static bool IsDatFile(byte[] data)
+    {
+        if (data.Length < 4)
+        {
+            return false;
+        }
+
+        uint firstUint = (uint)(data[0] | data[1] << 8 | data[2] << 16 | data[3] << 24);
+        return firstUint == DatHeaderLength || firstUint == 0x56535423;
+    }
+
+    public void Open(byte[] data)
+    {
+        Sheets.Clear();
+
+        StreamBuffer b = new StreamBuffer(data);
+        b.SetPositionStart();
+        HeaderLength = b.ReadUInt32();
+        if (DatHeaderLength != HeaderLength)
+        {
+            if (HeaderLength == 0x56535423)
+            {
+                byte[] tsvBytes = b.GetAllBytes();
+                ReadTsv(tsvBytes);
+                return;
+            }
+
+            Logger.Info($"header length miss match");
+        }
+
+        Magic = b.ReadUInt32();
+        if (DatMagic != Magic)
+        {
+            Logger.Info($"MAGIC miss match");
+        }
+
+        ChunkCount = b.ReadUInt32();
+        uint unk = b.ReadUInt32();
+
+        byte[] cipher = b.ReadBytes(b.Size - b.Position);
+        byte[] plain = DecryptDat(cipher);
+
+        ReadTsv(plain);
+    }
+
     public void Open(string path)
     {
         Sheets.Clear();
@@ -51,6 +112,7 @@ public class DatFile
                 ReadTsv(tsvBytes);
                 return;
             }
+
             Logger.Info($"header length miss match");
         }
 
@@ -64,9 +126,9 @@ public class DatFile
         uint unk = b.ReadUInt32();
 
         byte[] cipher = b.ReadBytes(b.Size - b.Position);
-        byte[] plain = IIPSCrypto.DecryptDat(cipher);
-        
-        
+        byte[] plain = DecryptDat(cipher);
+
+
         ReadTsv(plain);
     }
 
@@ -121,6 +183,7 @@ public class DatFile
                     buffer.Clear();
                     break;
                 }
+
                 byte read = dec.ReadByte();
                 if (read == endBuffer[endBufferIndex])
                 {

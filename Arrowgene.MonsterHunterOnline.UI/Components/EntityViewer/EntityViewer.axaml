@@ -1,0 +1,346 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:local="using:Arrowgene.MonsterHunterOnline.UI.Components"
+             x:Class="Arrowgene.MonsterHunterOnline.UI.Components.EntityViewer"
+             x:DataType="local:EntityViewerViewModel"
+             mc:Ignorable="d">
+
+    <Design.DataContext>
+        <local:EntityViewerViewModel />
+    </Design.DataContext>
+
+    <UserControl.Resources>
+        <SolidColorBrush x:Key="FgPrimary" Color="#0F172A" />
+        <SolidColorBrush x:Key="FgSecondary" Color="#334155" />
+        <SolidColorBrush x:Key="FgMuted" Color="#667085" />
+        <SolidColorBrush x:Key="FgOnDark" Color="#F9FAFB" />
+        <SolidColorBrush x:Key="BgPage" Color="#F2F1EC" />
+        <SolidColorBrush x:Key="BgPane" Color="#F8F7F4" />
+        <SolidColorBrush x:Key="BgSurface" Color="#FFFFFF" />
+        <SolidColorBrush x:Key="BgSurfaceAlt" Color="#ECE9E2" />
+        <SolidColorBrush x:Key="BgBar" Color="#E8E5DE" />
+        <SolidColorBrush x:Key="BgDark" Color="#111827" />
+        <SolidColorBrush x:Key="BgInput" Color="#1F2937" />
+        <SolidColorBrush x:Key="BorderDefault" Color="#D7D3CC" />
+        <SolidColorBrush x:Key="BorderSubtle" Color="#E2E8F0" />
+        <SolidColorBrush x:Key="BorderDark" Color="#374151" />
+        <SolidColorBrush x:Key="Splitter" Color="#DDD9D1" />
+        <SolidColorBrush x:Key="TagBg" Color="#EDE9E0" />
+        <SolidColorBrush x:Key="TagFg" Color="#3D3929" />
+    </UserControl.Resources>
+
+    <UserControl.Styles>
+        <Style Selector="Border.pane">
+            <Setter Property="Background" Value="{StaticResource BgPane}" />
+            <Setter Property="BorderBrush" Value="{StaticResource BorderDefault}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="Padding" Value="12" />
+        </Style>
+        <Style Selector="Border.pill">
+            <Setter Property="Background" Value="{StaticResource BgSurfaceAlt}" />
+            <Setter Property="CornerRadius" Value="999" />
+            <Setter Property="Padding" Value="10,4" />
+        </Style>
+        <Style Selector="Border.card">
+            <Setter Property="Background" Value="{StaticResource BgSurface}" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="12,8" />
+            <Setter Property="BorderBrush" Value="{StaticResource BorderSubtle}" />
+            <Setter Property="BorderThickness" Value="1" />
+        </Style>
+        <Style Selector="Border.tag">
+            <Setter Property="Background" Value="{StaticResource TagBg}" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Padding" Value="10,6" />
+            <Setter Property="Margin" Value="0,2" />
+        </Style>
+        <Style Selector="Border.tag > TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource TagFg}" />
+        </Style>
+        <Style Selector="TextBlock.caption">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Foreground" Value="{StaticResource FgMuted}" />
+        </Style>
+        <Style Selector="TextBlock.pill-text">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{StaticResource FgSecondary}" />
+        </Style>
+        <Style Selector="TextBlock.detail-label">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Foreground" Value="{StaticResource FgMuted}" />
+            <Setter Property="MinWidth" Value="100" />
+        </Style>
+        <Style Selector="TextBlock.detail-value">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="{StaticResource FgPrimary}" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+        <Style Selector="TextBlock.section-title">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{StaticResource FgPrimary}" />
+            <Setter Property="Margin" Value="0,14,0,4" />
+        </Style>
+        <Style Selector="Button.toolbar-text">
+            <Setter Property="Padding" Value="12,6" />
+            <Setter Property="MinHeight" Value="34" />
+        </Style>
+    </UserControl.Styles>
+
+    <Border Background="{StaticResource BgPage}">
+        <DockPanel LastChildFill="True">
+
+            <!-- ═══ Filter bar ═══ -->
+            <Border DockPanel.Dock="Top" Background="{StaticResource BgBar}"
+                    BorderBrush="{StaticResource BorderDefault}" BorderThickness="0,0,0,1"
+                    Padding="16,8" IsVisible="{Binding HasEntities}">
+                <StackPanel Orientation="Horizontal" Spacing="12">
+                    <TextBox Text="{Binding FilterText, Mode=TwoWay}"
+                             Watermark="Search by ID or name..."
+                             Width="220" MinHeight="28" Padding="8,4" FontSize="11" />
+
+                    <TextBlock Text="Kind:" FontSize="11" FontWeight="SemiBold"
+                               Foreground="{StaticResource FgSecondary}" VerticalAlignment="Center" />
+                    <ComboBox ItemsSource="{Binding KindFilters}"
+                              SelectedItem="{Binding SelectedKindFilter}"
+                              MinHeight="28" Padding="8,4" FontSize="11" />
+
+                    <Border Width="1" Height="20" Background="{StaticResource BorderDark}" VerticalAlignment="Center" />
+
+                    <Border Classes="pill">
+                        <TextBlock Text="{Binding Entities.Count, StringFormat='{}{0} entities'}" Classes="pill-text" />
+                    </Border>
+                </StackPanel>
+            </Border>
+
+            <!-- ═══ Status bar ═══ -->
+            <Border DockPanel.Dock="Bottom" Background="{StaticResource BgPane}"
+                    BorderBrush="{StaticResource BorderDefault}" BorderThickness="0,1,0,0" Padding="12,8">
+                <TextBlock Text="{Binding StatusText}" MaxLines="1" TextTrimming="CharacterEllipsis"
+                           Foreground="{StaticResource FgSecondary}" ToolTip.Tip="{Binding StatusText}" />
+            </Border>
+
+            <!-- ═══ Main content ═══ -->
+            <Grid ColumnDefinitions="350,6,*" MinHeight="0">
+
+                <!-- ── Entity list ── -->
+                <Border Grid.Column="0" Classes="pane" Margin="12,12,6,12" MinHeight="0">
+                    <Grid RowDefinitions="Auto,*" MinHeight="0">
+                        <StackPanel Grid.Row="0" Spacing="2" Margin="0,0,0,8">
+                            <TextBlock Text="Entities" FontSize="14" FontWeight="SemiBold"
+                                       Foreground="{StaticResource FgPrimary}" />
+                            <TextBlock Text="{Binding Entities.Count, StringFormat='{}{0} entities loaded'}"
+                                       Classes="caption" />
+                        </StackPanel>
+                        <Border Grid.Row="1" Background="{StaticResource BgSurface}"
+                                BorderBrush="{StaticResource BorderDefault}" BorderThickness="1"
+                                CornerRadius="10" Padding="4" MinHeight="0">
+                            <ListBox ItemsSource="{Binding Entities}"
+                                     SelectedItem="{Binding SelectedEntity, Mode=TwoWay}"
+                                     Background="Transparent" BorderThickness="0" MinHeight="0">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate x:DataType="local:EntityListItemViewModel">
+                                        <StackPanel Orientation="Horizontal" Spacing="8" Margin="4,3">
+                                            <Image Source="{Binding Icon}"
+                                                   Width="32" Height="32"
+                                                   IsVisible="{Binding Icon, Converter={x:Static ObjectConverters.IsNotNull}}"
+                                                   VerticalAlignment="Center" />
+                                            <StackPanel VerticalAlignment="Center">
+                                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                                    <TextBlock Text="{Binding Id, StringFormat='#{0}'}"
+                                                               Foreground="{StaticResource FgMuted}" FontSize="11"
+                                                               VerticalAlignment="Center" />
+                                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold"
+                                                               Foreground="{StaticResource FgPrimary}" FontSize="13" />
+                                                    <Border Classes="pill" Padding="6,2" Margin="4,0,0,0">
+                                                        <TextBlock Text="{Binding Kind}" FontSize="10"
+                                                                   Foreground="{StaticResource FgMuted}" />
+                                                    </Border>
+                                                </StackPanel>
+                                                <TextBlock Text="{Binding Summary}" Foreground="{StaticResource FgMuted}"
+                                                           FontSize="11" />
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </Border>
+                    </Grid>
+                </Border>
+
+                <!-- Splitter -->
+                <GridSplitter Grid.Column="1" Width="6" Background="{StaticResource Splitter}"
+                              ShowsPreview="True" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
+
+                <!-- ── Detail ── -->
+                <Border Grid.Column="2" Classes="pane" Margin="0,12,12,12" MinHeight="0">
+                    <ScrollViewer IsVisible="{Binding HasSelection}">
+                        <StackPanel Spacing="4" Margin="4">
+
+                            <!-- Icon + Name + badges -->
+                            <StackPanel Orientation="Horizontal" Spacing="12">
+                                <Image Source="{Binding DetailIcon}"
+                                       Width="48" Height="48"
+                                       IsVisible="{Binding HasDetailIcon}"
+                                       VerticalAlignment="Center" />
+                                <TextBlock Text="{Binding DetailName}" FontSize="20" FontWeight="Bold"
+                                           Foreground="{StaticResource FgPrimary}" TextWrapping="Wrap"
+                                           VerticalAlignment="Center" />
+                            </StackPanel>
+                            <WrapPanel Orientation="Horizontal" Margin="0,4,0,8">
+                                <Border Classes="pill" Margin="0,0,8,4">
+                                    <TextBlock Text="{Binding DetailId, StringFormat='ID: {0}'}" Classes="pill-text" />
+                                </Border>
+                                <Border Classes="pill" Margin="0,0,8,4">
+                                    <TextBlock Text="{Binding DetailKind}" Classes="pill-text" />
+                                </Border>
+                            </WrapPanel>
+
+                            <!-- ═══ MONSTER DETAIL ═══ -->
+                            <StackPanel IsVisible="{Binding IsMonster}" Spacing="4">
+                                <TextBlock Classes="section-title" Text="Monster Info" />
+                                <Border Classes="card">
+                                    <Grid ColumnDefinitions="Auto,*,Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto"
+                                          ColumnSpacing="8" RowSpacing="6">
+                                        <TextBlock Grid.Row="0" Grid.Column="0" Classes="detail-label" Text="Type" />
+                                        <TextBlock Grid.Row="0" Grid.Column="1" Classes="detail-value" Text="{Binding MonType}" />
+                                        <TextBlock Grid.Row="0" Grid.Column="2" Classes="detail-label" Text="Group" />
+                                        <TextBlock Grid.Row="0" Grid.Column="3" Classes="detail-value" Text="{Binding MonGroup}" />
+
+                                        <TextBlock Grid.Row="1" Grid.Column="0" Classes="detail-label" Text="Entity" />
+                                        <TextBlock Grid.Row="1" Grid.Column="1" Classes="detail-value" Text="{Binding MonEntityName}" />
+                                        <TextBlock Grid.Row="1" Grid.Column="2" Classes="detail-label" Text="Class" />
+                                        <TextBlock Grid.Row="1" Grid.Column="3" Classes="detail-value" Text="{Binding MonEntityClass}" />
+
+                                        <TextBlock Grid.Row="2" Grid.Column="0" Classes="detail-label" Text="Race" />
+                                        <TextBlock Grid.Row="2" Grid.Column="1" Classes="detail-value" Text="{Binding MonRace}" />
+                                        <TextBlock Grid.Row="2" Grid.Column="2" Classes="detail-label" Text="Size" />
+                                        <TextBlock Grid.Row="2" Grid.Column="3" Classes="detail-value" Text="{Binding MonSize}" />
+
+                                        <TextBlock Grid.Row="3" Grid.Column="0" Classes="detail-label" Text="Capture HP %" />
+                                        <TextBlock Grid.Row="3" Grid.Column="1" Classes="detail-value" Text="{Binding MonCaptureHp}" />
+                                        <TextBlock Grid.Row="3" Grid.Column="2" Classes="detail-label" Text="Loot Size" />
+                                        <TextBlock Grid.Row="3" Grid.Column="3" Classes="detail-value" Text="{Binding MonLootSize}" />
+
+                                        <TextBlock Grid.Row="4" Grid.Column="0" Classes="detail-label" Text="Exist Time" />
+                                        <TextBlock Grid.Row="4" Grid.Column="1" Classes="detail-value"
+                                                   Text="{Binding MonExistTime, StringFormat='{}{0}s'}" />
+                                    </Grid>
+                                </Border>
+
+                                <TextBlock Classes="section-title" Text="Difficulty Stats"
+                                           IsVisible="{Binding HasMonStats}" />
+                                <ItemsControl ItemsSource="{Binding MonStats}" IsVisible="{Binding HasMonStats}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Classes="tag">
+                                                <TextBlock Text="{Binding}" FontSize="12" TextWrapping="Wrap" />
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+
+                                <TextBlock Classes="section-title" Text="Parts"
+                                           IsVisible="{Binding HasMonParts}" />
+                                <ItemsControl ItemsSource="{Binding MonParts}" IsVisible="{Binding HasMonParts}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Classes="tag">
+                                                <TextBlock Text="{Binding}" FontSize="12" TextWrapping="Wrap" />
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+
+                            <!-- ═══ NPC DETAIL ═══ -->
+                            <StackPanel IsVisible="{Binding IsNpc}" Spacing="4">
+                                <TextBlock Classes="section-title" Text="NPC Info" />
+                                <Border Classes="card">
+                                    <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto"
+                                          ColumnSpacing="12" RowSpacing="6">
+                                        <TextBlock Grid.Row="0" Grid.Column="0" Classes="detail-label" Text="Title" />
+                                        <TextBlock Grid.Row="0" Grid.Column="1" Classes="detail-value" Text="{Binding NpcTitle}" />
+                                        <TextBlock Grid.Row="1" Grid.Column="0" Classes="detail-label" Text="Entity" />
+                                        <TextBlock Grid.Row="1" Grid.Column="1" Classes="detail-value" Text="{Binding NpcEntityName}" />
+                                        <TextBlock Grid.Row="2" Grid.Column="0" Classes="detail-label" Text="Class" />
+                                        <TextBlock Grid.Row="2" Grid.Column="1" Classes="detail-value" Text="{Binding NpcEntityClass}" />
+                                        <TextBlock Grid.Row="3" Grid.Column="0" Classes="detail-label" Text="Custom Type" />
+                                        <TextBlock Grid.Row="3" Grid.Column="1" Classes="detail-value" Text="{Binding NpcCustomType}" />
+                                        <TextBlock Grid.Row="4" Grid.Column="0" Classes="detail-label" Text="Appear Task" />
+                                        <TextBlock Grid.Row="4" Grid.Column="1" Classes="detail-value" Text="{Binding NpcAppearTask}" />
+                                        <TextBlock Grid.Row="5" Grid.Column="0" Classes="detail-label" Text="Disappear Task" />
+                                        <TextBlock Grid.Row="5" Grid.Column="1" Classes="detail-value" Text="{Binding NpcDisappearTask}" />
+                                    </Grid>
+                                </Border>
+
+                                <TextBlock Classes="section-title" Text="Services"
+                                           IsVisible="{Binding HasNpcServices}" />
+                                <WrapPanel Orientation="Horizontal" IsVisible="{Binding HasNpcServices}">
+                                    <ItemsControl ItemsSource="{Binding NpcServices}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <WrapPanel Orientation="Horizontal" />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Classes="pill" Margin="0,0,6,6">
+                                                    <TextBlock Text="{Binding}" Classes="pill-text" />
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </WrapPanel>
+                            </StackPanel>
+
+                            <!-- ═══ PET DETAIL ═══ -->
+                            <StackPanel IsVisible="{Binding IsPet}" Spacing="4">
+                                <TextBlock Classes="section-title" Text="Pet Info" />
+                                <Border Classes="card">
+                                    <Grid ColumnDefinitions="Auto,*,Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto"
+                                          ColumnSpacing="8" RowSpacing="6">
+                                        <TextBlock Grid.Row="0" Grid.Column="0" Classes="detail-label" Text="Type" />
+                                        <TextBlock Grid.Row="0" Grid.Column="1" Classes="detail-value" Text="{Binding PetType}" />
+                                        <TextBlock Grid.Row="0" Grid.Column="2" Classes="detail-label" Text="Quality" />
+                                        <TextBlock Grid.Row="0" Grid.Column="3" Classes="detail-value" Text="{Binding PetQuality}" />
+
+                                        <TextBlock Grid.Row="1" Grid.Column="0" Classes="detail-label" Text="Personality" />
+                                        <TextBlock Grid.Row="1" Grid.Column="1" Classes="detail-value" Text="{Binding PetPersonality}" />
+                                        <TextBlock Grid.Row="1" Grid.Column="2" Classes="detail-label" Text="Aptitude" />
+                                        <TextBlock Grid.Row="1" Grid.Column="3" Classes="detail-value" Text="{Binding PetAptitude}" />
+
+                                        <TextBlock Grid.Row="2" Grid.Column="0" Classes="detail-label" Text="Attack Pref." />
+                                        <TextBlock Grid.Row="2" Grid.Column="1" Classes="detail-value" Text="{Binding PetAttackPref}" />
+                                        <TextBlock Grid.Row="2" Grid.Column="2" Classes="detail-label" Text="Attack Style" />
+                                        <TextBlock Grid.Row="2" Grid.Column="3" Classes="detail-value" Text="{Binding PetAttackStyle}" />
+
+                                        <TextBlock Grid.Row="3" Grid.Column="0" Classes="detail-label" Text="Level" />
+                                        <TextBlock Grid.Row="3" Grid.Column="1" Classes="detail-value" Text="{Binding PetLevel}" />
+                                        <TextBlock Grid.Row="3" Grid.Column="2" Classes="detail-label" Text="Heal Speed" />
+                                        <TextBlock Grid.Row="3" Grid.Column="3" Classes="detail-value" Text="{Binding PetHealSpeed}" />
+
+                                        <TextBlock Grid.Row="4" Grid.Column="0" Classes="detail-label" Text="Burrow HP %" />
+                                        <TextBlock Grid.Row="4" Grid.Column="1" Classes="detail-value" Text="{Binding PetBurrowHp}" />
+                                        <TextBlock Grid.Row="4" Grid.Column="2" Classes="detail-label" Text="Support Skill" />
+                                        <TextBlock Grid.Row="4" Grid.Column="3" Classes="detail-value" Text="{Binding PetSupportSkill}" />
+
+                                        <TextBlock Grid.Row="5" Grid.Column="0" Classes="detail-label" Text="Entity" />
+                                        <TextBlock Grid.Row="5" Grid.Column="1" Classes="detail-value" Text="{Binding PetEntityName}" />
+                                        <TextBlock Grid.Row="5" Grid.Column="2" Classes="detail-label" Text="Icon" />
+                                        <TextBlock Grid.Row="5" Grid.Column="3" Classes="detail-value" Text="{Binding PetIcon}" />
+                                    </Grid>
+                                </Border>
+                            </StackPanel>
+
+                        </StackPanel>
+                    </ScrollViewer>
+                </Border>
+            </Grid>
+        </DockPanel>
+    </Border>
+</UserControl>

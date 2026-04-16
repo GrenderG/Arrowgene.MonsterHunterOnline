@@ -1,6 +1,9 @@
-﻿using System.IO;
+﻿using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using Arrowgene.Logging;
-using Arrowgene.MonsterHunterOnline.Service.IIPS;
+using Arrowgene.MonsterHunterOnline.ClientTools.Dat;
+using Arrowgene.MonsterHunterOnline.ClientTools.IIPS;
 
 namespace Arrowgene.MonsterHunterOnline.Cli.Command
 {
@@ -19,49 +22,101 @@ namespace Arrowgene.MonsterHunterOnline.Cli.Command
 
         public CommandResultType Run(CommandParameter parameter)
         {
-            //     IIPSFile f = new IIPSFile();
-            //  f.Open("C:\\Users\\nxspirit\\Downloads\\MHO_FullDirectory_Final\\TencentGame\\Monster Hunter Online\\Bin\\Client\\IIPS\\iipsdownload\\base_000_2017_06_26_23_05.ifs");
-
-            //     f.Open("C:\\Users\\nxspirit\\dev\\test\\base_000_2017_06_26_23_05.ifs");
-
-
-            //   f.Open("C:\\Users\\nxspirit\\dev\\test\\patch_2018_03_09_10_11.ifs");
-
-
-            string outDir = "C:\\Users\\nxspirit\\dev\\MHO_TOOL\\static_csv\\";
-            if (!Directory.Exists(outDir))
+            if (parameter.Arguments.Count >= 3 && parameter.Arguments[0] == "dat")
             {
-                Directory.CreateDirectory(outDir);
-            }
+                string inDir = parameter.Arguments[1];
+                string outDir = parameter.Arguments[2];
 
-            DatFile df = new DatFile();
-            foreach (string staticFile in Directory.GetFiles(
-                         "C:\\Users\\nxspirit\\dev\\MHO_TOOL\\extracted\\common\\staticdata\\"))
-            {
-                if (staticFile.EndsWith(".dat"))
+                if (!Directory.Exists(inDir))
                 {
-                    FileInfo fi = new FileInfo(staticFile);
-                    df.Open(staticFile);
-                    if (df.ContentType == DatFile.DatContentType.TSV)
+                    Logger.Error($"Input directory does not exist: {inDir}");
+                    return CommandResultType.Completed;
+                }
+
+                if (!Directory.Exists(outDir))
+                {
+                    Directory.CreateDirectory(outDir);
+                }
+
+                DatFile df = new DatFile();
+                List<string> files = new List<string>(Directory.GetFiles(inDir));
+                files.Sort();
+                foreach (string staticFile in files)
+                {
+                    if (staticFile.EndsWith(".dat"))
                     {
-                        foreach (TsvSheet sheet in df.Sheets)
+                        FileInfo fi = new FileInfo(staticFile);
+                        df.Open(staticFile);
+                        if (df.ContentType == DatFile.DatContentType.TSV)
                         {
-                            string outPath = Path.Combine(outDir, $"{fi.Name}_{sheet.Name}.csv");
-                            File.WriteAllText(outPath, sheet.ToCsv());
+                            foreach (TsvSheet sheet in df.Sheets)
+                            {
+                                string outPath = Path.Combine(outDir, $"{fi.Name}_{sheet.Name}.csv");
+                                File.WriteAllText(outPath, sheet.ToCsv());
+                            }
+                        }
+                        else
+                        {
+                            string outPath = Path.Combine(outDir, $"{fi.Name}.txt");
+                            File.WriteAllText(outPath, df.Content);
                         }
                     }
-                    else
-                    {
-                        string outPath = Path.Combine(outDir, $"{fi.Name}.txt");
-                        File.WriteAllText(outPath, df.Content);
-                    }
                 }
+
+                return CommandResultType.Completed;
             }
 
+            if (parameter.Arguments.Count >= 2 && parameter.Arguments[0] == "ifs")
+            {
+                string inDir = parameter.Arguments[1];
 
-            // df.Open("C:\\Users\\nxspirit\\dev\\MHO_TOOL\\extracted\\common\\staticdata\\entry_info_hub.dat");
+                if (!Directory.Exists(inDir))
+                {
+                    Logger.Error($"Input directory does not exist: {inDir}");
+                    return CommandResultType.Completed;
+                }
 
-            return CommandResultType.Continue;
+
+                List<string> files = new List<string>(Directory.GetFiles(inDir));
+                files = files.OrderBy(f =>
+                {
+                    string fileName = Path.GetFileName(f);
+                    if (fileName.StartsWith("base_")) return 0;
+                    if (fileName.StartsWith("patch_")) return 1;
+                    return 2;
+                }).ThenBy(f => f).ToList();
+                string outDir = parameter.Arguments.Count >= 3 ? parameter.Arguments[2] : null;
+
+                foreach (string staticFile in files)
+                {
+                    if (staticFile.EndsWith(".ifs"))
+                    {
+                        using IIPSArchive archive = IIPSArchive.Open(staticFile);
+
+                        Logger.Info($"Archive: {Path.GetFileName(staticFile)}");
+                        Logger.Info($"  Entries: {archive.Entries.Count}, ArchivePaths: {archive.ArchivePaths.Count}");
+
+                        int named = 0;
+                        foreach (var entry in archive.Entries)
+                        {
+                            if (!string.IsNullOrEmpty(entry.ArchivePath)) named++;
+                        }
+                        Logger.Info($"  Named entries: {named}");
+
+                        if (outDir != null)
+                        {
+                            archive.ExtractAll(outDir);
+                        }
+                    }
+                }
+
+                return CommandResultType.Completed;
+            }
+
+            Logger.Info("Usage: iips dat <inDir> <outDir>");
+            Logger.Info("Usage: iips ifs <inDir> [outDir]");
+
+            return CommandResultType.Completed;
         }
 
         public void Shutdown()

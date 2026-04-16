@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <RootNamespace>Arrowgene.MonsterHunterOnline.ClientTools</RootNamespace>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Arrowgene.Buffers" Version="1.0.2" />
+        <PackageReference Include="Arrowgene.Logging" Version="1.2.1" />
+        <PackageReference Include="SkiaSharp" Version="3.119.2" />
+    </ItemGroup>
+
+</Project>
