@@ -8,6 +8,9 @@ using Arrowgene.MonsterHunterOnline.ClientTools.FileProvider;
 using Arrowgene.MonsterHunterOnline.ClientTools.Flash;
 using Arrowgene.Logging;
 
+// FlaArchive is no longer used for minimap rendering — the authoritative
+// source is the compiled SWF rendered via SwfSceneRenderer.
+
 namespace Arrowgene.MonsterHunterOnline.ClientTools.Level;
 
 /// <summary>
@@ -29,9 +32,9 @@ public sealed class MinimapAssetLoader
             return Load(provider, configPath, levelName, assetName, visualAssetPath);
         }
 
-        Logger.Debug($"No minimap config for '{levelName}', trying FLA-only");
-        string? flaOnlyPath = FindVisualAssetPath(provider, levelName);
-        if (flaOnlyPath == null)
+        Logger.Debug($"No minimap config for '{levelName}', trying SWF-only");
+        string? visualPath = FindVisualAssetPath(provider, levelName);
+        if (visualPath == null)
         {
             Logger.Debug($"No minimap visual asset for '{levelName}'");
             return null;
@@ -41,10 +44,9 @@ public sealed class MinimapAssetLoader
         {
             LevelName = levelName,
             AssetName = levelName,
-            VisualAssetPath = flaOnlyPath,
         };
-        TryLoadVisualMetadata(asset, provider, flaOnlyPath);
-        return asset.BitmapPlacements.Count > 0 || asset.CanvasWidth > 0 ? asset : null;
+        TryLoadVisualAsset(asset, provider, visualPath);
+        return asset.RenderedImage != null || asset.CanvasWidth > 0 ? asset : null;
     }
 
     public string? FindConfigPath(IFileProvider provider, string levelName)
@@ -96,113 +98,42 @@ public sealed class MinimapAssetLoader
 
         if (!string.IsNullOrEmpty(visualAssetPath))
         {
-            TryLoadVisualMetadata(asset, provider, visualAssetPath);
+            TryLoadVisualAsset(asset, provider, visualAssetPath);
         }
 
         return asset;
     }
 
-    private static void TryLoadVisualMetadata(LevelClientMiniMapAsset asset, IFileProvider provider, string visualAssetPath)
+    private static void TryLoadVisualAsset(LevelClientMiniMapAsset asset, IFileProvider provider, string visualAssetPath)
     {
-        string? effectivePath = ResolveSupportedVisualAssetPath(provider, visualAssetPath);
-        if (effectivePath == null)
-            return;
-
-        asset.VisualAssetPath = effectivePath;
-        string extension = Path.GetExtension(effectivePath);
-        if (string.Equals(extension, ".fla", StringComparison.OrdinalIgnoreCase))
+        string swfPath = Path.ChangeExtension(visualAssetPath, ".swf");
+        if (provider.Exists(swfPath))
         {
             try
             {
-                LoadFlaVisualMetadata(asset, provider, effectivePath);
+                SwfFile swf = SwfFile.Open(provider.ReadAllBytes(swfPath), swfPath);
+
+                if (asset.CanvasWidth <= 0 && swf.FrameSize.WidthPixels > 0)
+                    asset.CanvasWidth = swf.FrameSize.WidthPixels;
+                if (asset.CanvasHeight <= 0 && swf.FrameSize.HeightPixels > 0)
+                    asset.CanvasHeight = swf.FrameSize.HeightPixels;
+
+                byte[]? rendered = SwfSceneRenderer.RenderFirstFrame(swf);
+                if (rendered != null && rendered.Length > 0)
+                {
+                    asset.VisualAssetPath = swfPath;
+                    asset.RenderedImage = rendered;
+                    Logger.Info($"SWF rendered: {swfPath} ({asset.CanvasWidth}x{asset.CanvasHeight}, {rendered.Length} bytes)");
+                    return;
+                }
+
+                Logger.Error($"SWF rendering produced no output for '{swfPath}'");
             }
             catch (Exception ex)
             {
-                Logger.Error($"Failed to load minimap art from '{effectivePath}': {ex.Message}");
-            }
-
-            return;
-        }
-
-        if (string.Equals(extension, ".swf", StringComparison.OrdinalIgnoreCase))
-        {
-            try
-            {
-                LoadSwfVisualMetadata(asset, provider, effectivePath);
-            }
-            catch (Exception ex)
-            {
-                Logger.Error($"Failed to load minimap metadata from '{effectivePath}': {ex.Message}");
+                Logger.Error($"SWF rendering failed for '{swfPath}': {ex.Message}");
             }
         }
-    }
-
-    private static string? ResolveSupportedVisualAssetPath(IFileProvider provider, string visualAssetPath)
-    {
-        if (string.Equals(Path.GetExtension(visualAssetPath), ".fla", StringComparison.OrdinalIgnoreCase))
-            return provider.Exists(visualAssetPath) ? visualAssetPath : null;
-
-        string flaPath = Path.ChangeExtension(visualAssetPath, ".fla");
-        if (provider.Exists(flaPath))
-            return flaPath;
-
-        return provider.Exists(visualAssetPath) ? visualAssetPath : null;
-    }
-
-    private static void LoadFlaVisualMetadata(LevelClientMiniMapAsset asset, IFileProvider provider, string flaPath)
-    {
-        FlaArchive archive = FlaArchive.Open(provider.ReadAllBytes(flaPath), flaPath);
-        if (!archive.TryGetEntry(NormalizeArchivePath("DOMDocument.xml"), out FlaArchiveEntry? domEntry) || domEntry == null)
-        {
-            return;
-        }
-
-        XDocument domDocument = XDocument.Parse(ReadUtf8(archive.Extract(domEntry)));
-        XElement? root = domDocument.Root;
-        if (root == null)
-        {
-            return;
-        }
-
-        asset.CanvasWidth = ParseNullableFloat(root.Attribute("width")?.Value) ?? 0f;
-        asset.CanvasHeight = ParseNullableFloat(root.Attribute("height")?.Value) ?? 0f;
-
-        MinimapFlaScene scene = MinimapFlaSceneReader.Read(archive, domDocument);
-
-        foreach (LevelClientMiniMapBitmapPlacement placement in scene.BitmapPlacements)
-        {
-            asset.BitmapPlacements.Add(placement);
-        }
-
-        foreach (LevelClientMiniMapMarker marker in scene.Markers)
-        {
-            asset.Markers.Add(marker);
-        }
-    }
-
-    private static void LoadSwfVisualMetadata(LevelClientMiniMapAsset asset, IFileProvider provider, string swfPath)
-    {
-        SwfFile swf = SwfFile.Open(provider.ReadAllBytes(swfPath), swfPath);
-
-        if (asset.CanvasWidth <= 0 && swf.FrameSize.WidthPixels > 0)
-        {
-            asset.CanvasWidth = swf.FrameSize.WidthPixels;
-        }
-
-        if (asset.CanvasHeight <= 0 && swf.FrameSize.HeightPixels > 0)
-        {
-            asset.CanvasHeight = swf.FrameSize.HeightPixels;
-        }
-    }
-
-    private static string NormalizeArchivePath(string path)
-    {
-        return path.Replace('\\', '/');
-    }
-
-    private static string ReadUtf8(byte[] data)
-    {
-        return System.Text.Encoding.UTF8.GetString(data);
     }
 
     private static LevelClientMiniMapRegion ParseRegion(XElement regionEl)
@@ -370,9 +301,8 @@ public sealed class LevelClientMiniMapAsset
     public float CanvasHeight { get; set; }
     public int Alpha { get; set; }
     public List<LevelClientMiniMapRegion> Regions { get; } = [];
-    /// <summary>All bitmap placements from the FLA scene, in draw order.</summary>
-    public List<LevelClientMiniMapBitmapPlacement> BitmapPlacements { get; } = [];
-    public List<LevelClientMiniMapMarker> Markers { get; } = [];
+    /// <summary>Pre-rendered minimap image (PNG) from the SWF, covering the full canvas.</summary>
+    public byte[]? RenderedImage { get; set; }
 
     public bool TryProjectWorldPosition(Vec3 worldPosition, out Vec2 mapPosition)
     {

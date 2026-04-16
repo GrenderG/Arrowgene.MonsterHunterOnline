@@ -53,8 +53,6 @@ public sealed class MapCanvas : Control
     private static readonly IBrush ClientMinimapRegionFill = new SolidColorBrush(Color.FromArgb(22, 250, 204, 21));
     private static readonly IPen ClientMinimapRegionPen = new Pen(new SolidColorBrush(Color.FromArgb(110, 250, 204, 21)), 1);
 
-    private static readonly IBrush MarkerBrush = new SolidColorBrush(Color.FromRgb(56, 189, 248));
-    private static readonly IPen MarkerPen = new Pen(new SolidColorBrush(Color.FromArgb(200, 255, 255, 255)), 1);
 
     private static readonly Typeface LabelTypeface = new("Inter, Segoe UI, sans-serif");
 
@@ -67,7 +65,8 @@ public sealed class MapCanvas : Control
 
     // Heightmap bitmap
     private WriteableBitmap? _terrainBitmap;
-    private List<(LevelClientMiniMapBitmapPlacement placement, Bitmap bitmap)>? _minimapBitmaps;
+    private Bitmap? _minimapRenderedBitmap;
+
 
     // Tooltip
     private LevelEntity? _hoveredEntity;
@@ -125,7 +124,7 @@ public sealed class MapCanvas : Control
         if (change.Property == LevelProperty)
         {
             RebuildTerrainBitmap();
-            RebuildMinimapBitmaps();
+            RebuildMinimapBitmap();
             ResetView();
         }
         else if (change.Property == UseMinimapProperty)
@@ -164,42 +163,23 @@ public sealed class MapCanvas : Control
         }
     }
 
-    private void RebuildMinimapBitmaps()
+    private void RebuildMinimapBitmap()
     {
-        if (_minimapBitmaps != null)
-        {
-            foreach (var (_, bitmap) in _minimapBitmaps)
-            {
-                bitmap.Dispose();
-            }
+        _minimapRenderedBitmap?.Dispose();
+        _minimapRenderedBitmap = null;
 
-            _minimapBitmaps = null;
-        }
-
-        List<LevelClientMiniMapBitmapPlacement>? placements = Level?.ClientMiniMap?.BitmapPlacements;
-        if (placements == null || placements.Count == 0)
+        byte[]? imageData = Level?.ClientMiniMap?.RenderedImage;
+        if (imageData == null || imageData.Length == 0)
         {
             return;
         }
 
-        _minimapBitmaps = [];
-        foreach (LevelClientMiniMapBitmapPlacement placement in placements)
+        try
         {
-            if (placement.ImageData.Length == 0)
-            {
-                continue;
-            }
-
-            try
-            {
-                using MemoryStream stream = new(placement.ImageData, writable: false);
-                Bitmap bitmap = new(stream);
-                _minimapBitmaps.Add((placement, bitmap));
-            }
-            catch
-            {
-                // Skip unsupported image data.
-            }
+            _minimapRenderedBitmap = new Bitmap(new MemoryStream(imageData, writable: false));
+        }
+        catch
+        {
         }
     }
 
@@ -481,7 +461,7 @@ public sealed class MapCanvas : Control
 
         if (useClientMinimap)
         {
-            DrawMinimapBitmaps(ctx, projection);
+            DrawMinimapBitmap(ctx, mapRect);
             DrawClientMinimapGrid(ctx, projection, mapRect);
 
             if (ShowRegions)
@@ -503,9 +483,7 @@ public sealed class MapCanvas : Control
                 }
             }
 
-            DrawMarkers(ctx, projection);
-
-            var title = new FormattedText($"Client minimap: {projection.Asset.AssetName}", CultureInfo,
+            var title = new FormattedText($"Client minimap: {projection.Asset!.AssetName}", CultureInfo,
                 FlowDirection.LeftToRight, LabelTypeface, 11, Brushes.White);
             ctx.DrawText(title, new Point(mapRect.X + 8, mapRect.Y + 8));
         }
@@ -538,64 +516,11 @@ public sealed class MapCanvas : Control
         }
     }
 
-    private void DrawMinimapBitmaps(DrawingContext ctx, ClientMinimapProjection projection)
+    private void DrawMinimapBitmap(DrawingContext ctx, Rect mapRect)
     {
-        if (_minimapBitmaps == null)
+        if (_minimapRenderedBitmap != null)
         {
-            return;
-        }
-
-        // All bitmaps are positioned in FLA canvas space (Y-down).
-        // Compute the screen position of FLA origin (0,0).
-        float flaOriginScreenX = _offsetX + (0f - projection.MinX) * _zoom;
-        float flaOriginScreenY = _offsetY + (0f - projection.MinY) * _zoom;
-
-        foreach (var (placement, bitmap) in _minimapBitmaps)
-        {
-            Vec2 topLeft = placement.Transform.TransformPoint(0f, 0f);
-            float screenX = flaOriginScreenX + topLeft.X * _zoom;
-            float screenY = flaOriginScreenY + topLeft.Y * _zoom;
-
-            // Use transform-derived canvas size (handles scale transforms).
-            Vec2 topRight = placement.Transform.TransformPoint(placement.Width, 0f);
-            Vec2 bottomLeft = placement.Transform.TransformPoint(0f, placement.Height);
-            float canvasW = MathF.Abs(topRight.X - topLeft.X);
-            float canvasH = MathF.Abs(bottomLeft.Y - topLeft.Y);
-            if (canvasW < 0.5f) canvasW = placement.Width;
-            if (canvasH < 0.5f) canvasH = placement.Height;
-
-            Rect destRect = new(screenX, screenY, canvasW * _zoom, canvasH * _zoom);
-            ctx.DrawImage(bitmap, destRect);
-        }
-    }
-
-    private void DrawMarkers(DrawingContext ctx, ClientMinimapProjection projection)
-    {
-        List<LevelClientMiniMapMarker>? markers = Level?.ClientMiniMap?.Markers;
-        if (markers == null || markers.Count == 0)
-        {
-            return;
-        }
-
-        // FLA canvas uses Y-down, same as the minimap 2D coordinate space.
-        float flaOriginScreenX = _offsetX + (0f - projection.MinX) * _zoom;
-        float flaOriginScreenY = _offsetY + (0f - projection.MinY) * _zoom;
-
-        foreach (LevelClientMiniMapMarker marker in markers)
-        {
-            float screenX = flaOriginScreenX + marker.Position2D.X * _zoom;
-            float screenY = flaOriginScreenY + marker.Position2D.Y * _zoom;
-            Point screenPos = new(screenX, screenY);
-
-            ctx.DrawEllipse(MarkerBrush, MarkerPen, screenPos, 5, 5);
-
-            string text = marker.DisplayText;
-            if (!string.IsNullOrWhiteSpace(text))
-            {
-                var ft = new FormattedText(text, CultureInfo, FlowDirection.LeftToRight,
-                    LabelTypeface, 9, Brushes.White);
-                ctx.DrawText(ft, new Point(screenPos.X + 7, screenPos.Y - ft.Height / 2));
-            }
+            ctx.DrawImage(_minimapRenderedBitmap, mapRect);
         }
     }
 
