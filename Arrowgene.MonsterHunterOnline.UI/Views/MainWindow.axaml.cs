@@ -64,6 +64,7 @@ public partial class MainWindow : Window
             explorerVm.TryOpenFileProvider(provider, dirPath);
 
         await LoadAllViewersAsync(provider);
+        RecentFilesStore.Add(dirPath, RecentEntryKind.Directory);
     }
 
     // ── IIPS list mode ──
@@ -87,6 +88,7 @@ public partial class MainWindow : Window
             Vm.DataSourceLabel = $"IIPS List: {Path.GetFileName(lstPath)} ({_unifiedArchive.LoadedArchives.Count} archives, {_unifiedArchive.MergedEntries.Count} entries)";
 
             await LoadAllViewersAsync(provider);
+            RecentFilesStore.Add(lstPath, RecentEntryKind.FileList);
         }
         catch (Exception ex)
         {
@@ -133,6 +135,8 @@ public partial class MainWindow : Window
                 Vm.IsLoading = false;
                 MainTabs.SelectedIndex = 0;
             }
+
+            RecentFilesStore.Add(ifsPath, RecentEntryKind.Archive);
         }
         catch (Exception ex)
         {
@@ -213,7 +217,13 @@ public partial class MainWindow : Window
     private async Task<string?> PickFileAsync(string title, List<(string Name, List<string> Patterns)> filters)
     {
         if (OperatingSystem.IsMacOS())
-            return await MacNativePicker.PickFileAsync(title);
+        {
+            List<string> extensions = filters
+                .SelectMany(f => f.Patterns)
+                .Select(p => p.TrimStart('*', '.'))
+                .ToList();
+            return await MacNativePicker.PickFileAsync(title, extensions);
+        }
 
         TopLevel? topLevel = TopLevel.GetTopLevel(this);
         if (topLevel?.StorageProvider == null) return null;
@@ -245,6 +255,65 @@ public partial class MainWindow : Window
             new FolderPickerOpenOptions { Title = title, AllowMultiple = false });
 
         return folders.Count > 0 ? folders[0].TryGetLocalPath() : null;
+    }
+
+    // ── Recent files ──
+
+    private void RecentClick(object? sender, RoutedEventArgs e)
+    {
+        MenuFlyout flyout = new() { Placement = PlacementMode.BottomEdgeAlignedLeft };
+
+        List<RecentEntry> entries = RecentFilesStore.Load();
+
+        if (entries.Count == 0)
+        {
+            flyout.Items.Add(new MenuItem { Header = "(no recent items)", IsEnabled = false });
+        }
+        else
+        {
+            foreach (RecentEntry entry in entries)
+            {
+                MenuItem item = new()
+                {
+                    Header = $"[{entry.KindLabel}]  {entry.DisplayName}",
+                    Tag = entry
+                };
+                ToolTip.SetTip(item, entry.Path);
+                item.Click += RecentItemClick;
+                flyout.Items.Add(item);
+            }
+
+            flyout.Items.Add(new Separator());
+
+            MenuItem clearItem = new() { Header = "Clear Recent" };
+            clearItem.Click += ClearRecentClick;
+            flyout.Items.Add(clearItem);
+        }
+
+        flyout.ShowAt(RecentButton);
+    }
+
+    private async void RecentItemClick(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not MenuItem { Tag: RecentEntry entry }) return;
+
+        switch (entry.Kind)
+        {
+            case RecentEntryKind.Archive:
+                await LoadFromSingleArchiveAsync(entry.Path);
+                break;
+            case RecentEntryKind.FileList:
+                await LoadFromIIPSListAsync(entry.Path);
+                break;
+            case RecentEntryKind.Directory:
+                await LoadFromDirectoryAsync(entry.Path);
+                break;
+        }
+    }
+
+    private void ClearRecentClick(object? sender, RoutedEventArgs e)
+    {
+        RecentFilesStore.Clear();
     }
 }
 

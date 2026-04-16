@@ -18,6 +18,7 @@
     </ItemGroup>
     <ItemGroup>
       <ProjectReference Include="..\Arrowgene.MonsterHunterOnline.ClientTools\Arrowgene.MonsterHunterOnline.ClientTools.csproj" />
+      <ProjectReference Include="..\Arrowgene.MonsterHunterOnline.Protocol\Arrowgene.MonsterHunterOnline.Protocol.csproj" />
       <ProjectReference Include="..\Arrowgene.MonsterHunterOnline.Service\Arrowgene.MonsterHunterOnline.Service.csproj" />
     </ItemGroup>
 </Project>

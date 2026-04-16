@@ -58,16 +58,26 @@
                             Click="OpenArchiveClick"
                             Padding="12,6"
                             MinHeight="34"
+                            ToolTip.Tip="Open a single IIPS archive (.ifs)"
                             IsEnabled="{Binding !IsLoading}" />
                     <Button Content="File List"
                             Click="FileListClick"
                             Padding="12,6"
                             MinHeight="34"
+                            ToolTip.Tip="Open an IIPS file list (.lst)"
                             IsEnabled="{Binding !IsLoading}" />
                     <Button Content="Folder"
                             Click="FolderClick"
                             Padding="12,6"
                             MinHeight="34"
+                            ToolTip.Tip="Open MHO client files directory"
+                            IsEnabled="{Binding !IsLoading}" />
+                    <Button x:Name="RecentButton"
+                            Content="Recent"
+                            Click="RecentClick"
+                            Padding="12,6"
+                            MinHeight="34"
+                            ToolTip.Tip="Open a recently used source"
                             IsEnabled="{Binding !IsLoading}" />
                 </StackPanel>
 
