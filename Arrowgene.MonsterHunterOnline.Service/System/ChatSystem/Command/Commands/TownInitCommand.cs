@@ -1,11 +1,15 @@
-﻿using Arrowgene.MonsterHunterOnline.Service.CsProto;
-using Arrowgene.MonsterHunterOnline.Service.CsProto.Constant;
-using Arrowgene.MonsterHunterOnline.Service.CsProto.Core;
-using Arrowgene.MonsterHunterOnline.Service.CsProto.Structures;
+﻿using Arrowgene.MonsterHunterOnline.Protocol.Old.ExtraStructures;
+using Arrowgene.MonsterHunterOnline.Protocol.Old.Structures;
+using Arrowgene.MonsterHunterOnline.Protocol.Constant;
+using Arrowgene.MonsterHunterOnline.Protocol;
+using Arrowgene.MonsterHunterOnline.Protocol.Old.Structures;
+using Arrowgene.MonsterHunterOnline.Protocol.Structures;
 using Microsoft.VisualBasic.FileIO;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using Arrowgene.MonsterHunterOnline.Service.CsProto;
+using Arrowgene.MonsterHunterOnline.Service.CsProto.Core;
 
 namespace Arrowgene.MonsterHunterOnline.Service.System.ChatSystem.Command.Commands;
 
@@ -55,7 +59,7 @@ public class TownInitCommand : ChatCommand
         instanceInitInfo.WarningFlag = 0;
         instanceInitInfo.CreatePlayerMaxLv = 99;
 
-        string staticFolder = Path.Combine(Util.ExecutingDirectory(), "Files\\Static");
+        string staticFolder = Path.Combine(Util.ExecutingDirectory(), "Files", "Static");
         string csvSpawnPointsPath = Path.Combine(staticFolder, "SpawnPoints.csv");
         //int level = client.State.levelId;
         level = instanceInitInfo.LevelId;

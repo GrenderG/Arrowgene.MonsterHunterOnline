@@ -1,9 +1,8 @@
 ﻿using System.Threading;
 using Arrowgene.Logging;
-using Arrowgene.MonsterHunterOnline.Service.CsProto.Constant;
+using Arrowgene.MonsterHunterOnline.Protocol.Constant;
+using Arrowgene.MonsterHunterOnline.Protocol.Structures;
 using Arrowgene.MonsterHunterOnline.Service.CsProto.Core;
-using Arrowgene.MonsterHunterOnline.Service.CsProto.Enums;
-using Arrowgene.MonsterHunterOnline.Service.CsProto.Structures;
 
 namespace Arrowgene.MonsterHunterOnline.Service.CsProto.Handler;
 

@@ -1,8 +1,8 @@
 ﻿using Arrowgene.Logging;
-using Arrowgene.MonsterHunterOnline.Service.CsProto.Constant;
+using Arrowgene.MonsterHunterOnline.Protocol.Constant;
+using Arrowgene.MonsterHunterOnline.Protocol.Structures;
 using Arrowgene.MonsterHunterOnline.Service.CsProto.Core;
-using Arrowgene.MonsterHunterOnline.Service.CsProto.Enums;
-using Arrowgene.MonsterHunterOnline.Service.CsProto.Structures;
+using Arrowgene.MonsterHunterOnline.Protocol.Old.Structures;
 using Microsoft.VisualBasic.FileIO;
 using System.Globalization;
 using System.IO;
@@ -57,7 +57,7 @@ public class LeaveInstanceReqHandler : CsProtoStructureHandler<LeaveInstanceReq>
         instanceInitInfo.WarningFlag = 0;
         instanceInitInfo.CreatePlayerMaxLv = 99;
 
-        string staticFolder = Path.Combine(Util.ExecutingDirectory(), "Files\\Static");
+        string staticFolder = Path.Combine(Util.ExecutingDirectory(), "Files", "Static");
         string csvSpawnPointsPath = Path.Combine(staticFolder, "SpawnPoints.csv");
         //int level = client.State.levelId;
         int level = instanceInitInfo.LevelId;

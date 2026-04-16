@@ -1,9 +1,9 @@
 ﻿using System.Collections.Generic;
 using Arrowgene.Logging;
-using Arrowgene.MonsterHunterOnline.Service.CsProto.Structures;
+using Arrowgene.MonsterHunterOnline.Protocol.Constant;
+using Arrowgene.MonsterHunterOnline.Protocol.Structures;
 using Arrowgene.MonsterHunterOnline.Service.Database;
-using Arrowgene.MonsterHunterOnline.Service.System.ItemSystem.Constant;
-using Arrowgene.MonsterHunterOnline.Service.Tdr.TlvStructures;
+using Arrowgene.MonsterHunterOnline.Protocol.TlvStructures;
 
 namespace Arrowgene.MonsterHunterOnline.Service.System.ItemSystem;
 

@@ -1,9 +1,9 @@
 ﻿using Arrowgene.Buffers;
-using Arrowgene.MonsterHunterOnline.Service.CsProto.Core;
+using Arrowgene.MonsterHunterOnline.Protocol;
 
 namespace Arrowgene.MonsterHunterOnline.Service.TqqApi.Structure;
 
-public class TqqExtAuthInfo : CsProto.Core.Structure, ICsStructure
+public class TqqExtAuthInfo : Protocol.Structure, ICsStructure
 {
     public TqqExtAuthInfo()
     {

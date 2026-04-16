@@ -1,5 +1,5 @@
 ﻿using System;
-using Arrowgene.MonsterHunterOnline.Service.CsProto.Constant;
+using Arrowgene.MonsterHunterOnline.Protocol.Constant;
 
 namespace Arrowgene.MonsterHunterOnline.Service.System.CharacterSystem;
 

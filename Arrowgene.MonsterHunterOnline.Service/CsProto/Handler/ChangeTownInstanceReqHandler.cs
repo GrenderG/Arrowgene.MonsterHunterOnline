@@ -1,11 +1,11 @@
-﻿using Arrowgene.Logging;
-using Arrowgene.MonsterHunterOnline.Service.CsProto.Core;
-using Arrowgene.MonsterHunterOnline.Service.CsProto.Enums;
-using Arrowgene.MonsterHunterOnline.Service.CsProto.Structures;
-using Microsoft.VisualBasic.FileIO;
+﻿using System.Globalization;
 using System.IO;
-using Arrowgene.MonsterHunterOnline.Service.CsProto.Constant;
-using System.Globalization;
+using Arrowgene.Logging;
+using Arrowgene.MonsterHunterOnline.Protocol.Constant;
+using Arrowgene.MonsterHunterOnline.Protocol.Old.Structures;
+using Arrowgene.MonsterHunterOnline.Protocol.Structures;
+using Arrowgene.MonsterHunterOnline.Service.CsProto.Core;
+using Microsoft.VisualBasic.FileIO;
 
 namespace Arrowgene.MonsterHunterOnline.Service.CsProto.Handler;
 
@@ -17,7 +17,7 @@ public class ChangeTownInstanceReqHandler : CsProtoStructureHandler<ChangeTownIn
 
     public override void Handle(Client client, ChangeTownInstanceReq req)
     {
-        string staticFolder = Path.Combine(Util.ExecutingDirectory(), "Files\\Static");
+        string staticFolder = Path.Combine(Util.ExecutingDirectory(), "Files", "Static");
         string csvPath = Path.Combine(staticFolder, "ChangeTown.csv");
         //Logger.Info($"staticfolder:{staticFolder}\n csvpath:{csvPath}");
         int level = req.LevelId;

@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using Arrowgene.MonsterHunterOnline.Protocol.Constant;
 
 namespace Arrowgene.MonsterHunterOnline.Service.System.ChatSystem;
 

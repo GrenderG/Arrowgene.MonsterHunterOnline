@@ -1,5 +1,6 @@
 ﻿using Arrowgene.Logging;
-using Arrowgene.MonsterHunterOnline.Service.CsProto.Structures;
+using Arrowgene.MonsterHunterOnline.Protocol.Old.Structures;
+using Arrowgene.MonsterHunterOnline.Protocol.Structures;
 
 namespace Arrowgene.MonsterHunterOnline.Service;
 

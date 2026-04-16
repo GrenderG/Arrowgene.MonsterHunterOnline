@@ -1,13 +1,16 @@
 ﻿using System.Collections.Generic;
 using Arrowgene.Logging;
-using Arrowgene.MonsterHunterOnline.Service.CsProto.Constant;
-using Arrowgene.MonsterHunterOnline.Service.CsProto.Core;
-using Arrowgene.MonsterHunterOnline.Service.CsProto.Structures;
+using Arrowgene.MonsterHunterOnline.Protocol.Constant;
+using Arrowgene.MonsterHunterOnline.Protocol;
+using Arrowgene.MonsterHunterOnline.Protocol.Old.Structures;
+using Arrowgene.MonsterHunterOnline.Protocol.Structures;
 using Arrowgene.MonsterHunterOnline.Service.Database;
 using Arrowgene.MonsterHunterOnline.Service.System.ItemSystem;
 using Arrowgene.MonsterHunterOnline.Service.System.ItemSystem.Constant;
 using Arrowgene.MonsterHunterOnline.Service.System.UnlockSystem;
-using Arrowgene.MonsterHunterOnline.Service.Tdr.TlvStructures;
+using Arrowgene.MonsterHunterOnline.Protocol.TlvStructures;
+using Arrowgene.MonsterHunterOnline.Protocol.UnsafeTlvStructures;
+using Arrowgene.MonsterHunterOnline.Service.CsProto.Core;
 
 namespace Arrowgene.MonsterHunterOnline.Service.System.CharacterSystem;
 

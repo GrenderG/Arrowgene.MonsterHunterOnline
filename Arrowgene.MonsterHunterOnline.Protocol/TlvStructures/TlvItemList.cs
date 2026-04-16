@@ -1,0 +1,48 @@
+﻿using System;
+using System.Collections.Generic;
+using Arrowgene.Buffers;
+
+
+namespace Arrowgene.MonsterHunterOnline.Protocol.TlvStructures;
+
+/// <summary>
+/// TLV Structure for item count with short array.
+/// C++ Reader: crygame.dll+sub_101648B0 (UnkTlv0102)
+/// C++ Printer: crygame.dll+sub_10164D10
+/// </summary>
+public class TlvItemList : Structure, ITlvStructure
+{
+    private const int ItemsMaxSize = 0x9C4; // 200
+
+    public TlvItemList()
+    {
+        UnknownA = 0;
+        UnknownB = 0;
+        Items = new List<Item>();
+    }
+
+    public short UnknownA { get; set; }
+    public short UnknownB { get; set; }
+    public List<Item> Items { get; }
+
+    public void WriteTlv(IBuffer buffer)
+    {
+        // case 1
+        WriteTlvInt16(buffer, 1, UnknownA);
+
+        // case 2
+        int maxItems = Math.Min(Items.Count, ItemsMaxSize);
+        if (maxItems > 0)
+        {
+            WriteTlvSubStructureList(buffer, 2, maxItems, Items);
+        }
+
+        // case 3
+        WriteTlvInt16(buffer, 3, UnknownA);
+    }
+
+    public void ReadTlv(IBuffer buffer)
+    {
+        throw new NotImplementedException();
+    }
+}
