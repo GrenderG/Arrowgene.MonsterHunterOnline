@@ -2,10 +2,11 @@
 using System.Collections.Generic;
 using Arrowgene.Buffers;
 using Arrowgene.Logging;
+using Arrowgene.MonsterHunterOnline.Protocol.Old.Structures;
+using Arrowgene.MonsterHunterOnline.Protocol;
+using Arrowgene.MonsterHunterOnline.Protocol.Constant;
 using Arrowgene.MonsterHunterOnline.Service.CsProto;
 using Arrowgene.MonsterHunterOnline.Service.CsProto.Core;
-using Arrowgene.MonsterHunterOnline.Service.CsProto.Enums;
-using Arrowgene.MonsterHunterOnline.Service.CsProto.Structures;
 using Arrowgene.MonsterHunterOnline.Service.System;
 using Arrowgene.MonsterHunterOnline.Service.System.CharacterSystem;
 using Arrowgene.MonsterHunterOnline.Service.System.ItemSystem;

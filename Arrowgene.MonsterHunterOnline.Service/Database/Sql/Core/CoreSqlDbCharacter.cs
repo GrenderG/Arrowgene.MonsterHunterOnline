@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data.Common;
-using Arrowgene.MonsterHunterOnline.Service.CsProto.Constant;
+using Arrowgene.MonsterHunterOnline.Protocol.Constant;
 using Arrowgene.MonsterHunterOnline.Service.System;
 using Arrowgene.MonsterHunterOnline.Service.System.CharacterSystem;
 

@@ -1,12 +1,14 @@
 ﻿using Arrowgene.Logging;
-using Arrowgene.MonsterHunterOnline.Service.CsProto.Core;
-using Arrowgene.MonsterHunterOnline.Service.CsProto.Structures;
+using Arrowgene.MonsterHunterOnline.Protocol.Structures;
 using Arrowgene.MonsterHunterOnline.Service.Database;
 using Arrowgene.MonsterHunterOnline.Service.System.CharacterSystem;
 using Arrowgene.MonsterHunterOnline.Service.System.ClientAssetSystem;
 using Arrowgene.MonsterHunterOnline.Service.System.ItemSystem.Constant;
 using Microsoft.VisualBasic.FileIO;
 using System.IO;
+using Arrowgene.MonsterHunterOnline.Protocol.Constant;
+using Arrowgene.MonsterHunterOnline.Protocol.TlvStructures;
+using Arrowgene.MonsterHunterOnline.Service.CsProto.Core;
 
 namespace Arrowgene.MonsterHunterOnline.Service.System.ItemSystem;
 

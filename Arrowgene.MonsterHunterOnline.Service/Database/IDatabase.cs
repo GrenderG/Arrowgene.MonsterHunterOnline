@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
+using Arrowgene.MonsterHunterOnline.Protocol.TlvStructures;
 using Arrowgene.MonsterHunterOnline.Service.System;
 using Arrowgene.MonsterHunterOnline.Service.System.CharacterSystem;
-using Arrowgene.MonsterHunterOnline.Service.System.ItemSystem;
 
 namespace Arrowgene.MonsterHunterOnline.Service.Database
 {

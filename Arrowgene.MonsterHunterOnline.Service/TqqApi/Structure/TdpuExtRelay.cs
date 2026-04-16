@@ -1,11 +1,11 @@
 ﻿using System.Collections.Generic;
 using Arrowgene.Buffers;
-using Arrowgene.MonsterHunterOnline.Service.CsProto.Core;
+using Arrowgene.MonsterHunterOnline.Protocol;
 using Arrowgene.MonsterHunterOnline.Service.TqqApi.Constant;
 
 namespace Arrowgene.MonsterHunterOnline.Service.TqqApi.Structure;
 
-public class TdpuExtRelay : CsProto.Core.Structure, ICsStructure
+public class TdpuExtRelay : Protocol.Structure, ICsStructure
 {
     /// <summary>
     /// 重连请求包

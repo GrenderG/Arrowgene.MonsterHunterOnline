@@ -1,0 +1,41 @@
+using Arrowgene.Buffers;
+using Arrowgene.Logging;
+using Arrowgene.MonsterHunterOnline.Protocol;
+
+namespace Arrowgene.MonsterHunterOnline.Protocol.Structures
+{
+    /// <summary>
+    /// 进入战斗副本倒计时
+    /// </summary>
+    public class EnterInstanceCountDown : Structure, ICsStructure
+    {
+        
+        public EnterInstanceCountDown()
+        {
+            Second = 0;
+            LevelId = 0;
+        }
+
+        /// <summary>
+        /// 时间
+        /// </summary>
+        public int Second { get; set; }
+
+        /// <summary>
+        /// 关卡ID
+        /// </summary>
+        public int LevelId { get; set; }
+
+        public  void WriteCs(IBuffer buffer)
+        {
+            WriteInt32(buffer, Second);
+            WriteInt32(buffer, LevelId);
+        }
+
+        public void ReadCs(IBuffer buffer)
+        {
+            Second = ReadInt32(buffer);
+            LevelId = ReadInt32(buffer);
+        }
+    }
+}

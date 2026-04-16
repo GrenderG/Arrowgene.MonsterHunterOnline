@@ -1,6 +1,6 @@
 ﻿using Arrowgene.Buffers;
+using Arrowgene.MonsterHunterOnline.Protocol.Constant;
 using Arrowgene.MonsterHunterOnline.Service.CsProto.Core;
-using Arrowgene.MonsterHunterOnline.Service.CsProto.Enums;
 
 namespace Arrowgene.MonsterHunterOnline.Service.CsProto.Handler;
 

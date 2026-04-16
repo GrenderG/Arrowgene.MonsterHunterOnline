@@ -1,4 +1,5 @@
-﻿using Arrowgene.MonsterHunterOnline.Service.CsProto.Enums;
+﻿using Arrowgene.MonsterHunterOnline.Protocol;
+using Arrowgene.MonsterHunterOnline.Protocol.Constant;
 
 namespace Arrowgene.MonsterHunterOnline.Service.CsProto.Core;
 

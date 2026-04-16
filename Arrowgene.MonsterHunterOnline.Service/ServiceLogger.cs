@@ -1,8 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using Arrowgene.Logging;
+using Arrowgene.MonsterHunterOnline.Protocol;
+using Arrowgene.MonsterHunterOnline.Protocol.Constant;
 using Arrowgene.MonsterHunterOnline.Service.CsProto.Core;
-using Arrowgene.MonsterHunterOnline.Service.CsProto.Enums;
 using Arrowgene.MonsterHunterOnline.Service.TqqApi;
 using Arrowgene.Networking.Tcp;
 

@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Data.Common;
-using Arrowgene.MonsterHunterOnline.Service.System.ItemSystem;
-using Arrowgene.MonsterHunterOnline.Service.System.ItemSystem.Constant;
+using Arrowgene.MonsterHunterOnline.Protocol.Constant;
+using Arrowgene.MonsterHunterOnline.Protocol.TlvStructures;
 
 namespace Arrowgene.MonsterHunterOnline.Service.Database.Sql.Core
 {

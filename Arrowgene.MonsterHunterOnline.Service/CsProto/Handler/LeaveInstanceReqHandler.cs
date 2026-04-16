@@ -1,8 +1,8 @@
 ﻿using Arrowgene.Logging;
-using Arrowgene.MonsterHunterOnline.Service.CsProto.Constant;
+using Arrowgene.MonsterHunterOnline.Protocol.Constant;
+using Arrowgene.MonsterHunterOnline.Protocol.Structures;
 using Arrowgene.MonsterHunterOnline.Service.CsProto.Core;
-using Arrowgene.MonsterHunterOnline.Service.CsProto.Enums;
-using Arrowgene.MonsterHunterOnline.Service.CsProto.Structures;
+using Arrowgene.MonsterHunterOnline.Protocol.Old.Structures;
 using Microsoft.VisualBasic.FileIO;
 using System.Globalization;
 using System.IO;

@@ -1,8 +1,8 @@
 ﻿using System;
 using Arrowgene.Buffers;
 using Arrowgene.Logging;
+using Arrowgene.MonsterHunterOnline.Protocol.Constant;
 using Arrowgene.MonsterHunterOnline.Service.CsProto.Core;
-using Arrowgene.MonsterHunterOnline.Service.CsProto.Enums;
 using Arrowgene.MonsterHunterOnline.Service.System.ChatSystem;
 
 namespace Arrowgene.MonsterHunterOnline.Service.CsProto.Handler;

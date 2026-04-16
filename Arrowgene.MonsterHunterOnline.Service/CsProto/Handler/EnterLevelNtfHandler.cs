@@ -1,16 +1,13 @@
 ﻿using Arrowgene.Logging;
-using Arrowgene.MonsterHunterOnline.Service.CsProto.Constant;
-using Arrowgene.MonsterHunterOnline.Service.CsProto.Core;
-using Arrowgene.MonsterHunterOnline.Service.CsProto.Enums;
-using Arrowgene.MonsterHunterOnline.Service.CsProto.Old.ExtraStructures;
-using Arrowgene.MonsterHunterOnline.Service.CsProto.Structures;
-using Arrowgene.MonsterHunterOnline.Service.System;
+using Arrowgene.MonsterHunterOnline.Protocol.Constant;
+using Arrowgene.MonsterHunterOnline.Protocol.Old.Structures;
+using Arrowgene.MonsterHunterOnline.Protocol.Structures;
 using Arrowgene.MonsterHunterOnline.Service.System.CharacterSystem;
 using Microsoft.VisualBasic.FileIO;
-using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Threading;
+using Arrowgene.MonsterHunterOnline.Service.CsProto.Core;
 
 namespace Arrowgene.MonsterHunterOnline.Service.CsProto.Handler;
 
@@ -54,13 +51,14 @@ public class EnterLevelNtfHandler : CsProtoStructureHandler<EnterLevelNtf>
                     levelId = levelId.Remove(levelId.Length - 1);
 
                 // 150 hubs, 160 farm, 180 city
-                bool isMatch = (client.State.levelId.ToString() == levelId) 
-                                && (levelId.StartsWith("150") || levelId.StartsWith("160") || levelId.StartsWith("180")) 
-                                && levelId.EndsWith("01");
+                bool isMatch = (client.State.levelId.ToString() == levelId)
+                               && (levelId.StartsWith("150") || levelId.StartsWith("160") || levelId.StartsWith("180"))
+                               && levelId.EndsWith("01");
                 if (isMatch)
                 {
                     //TODO: HACK because it doesnt seems to work with a full list of the zone
-                    CsCsProtoStructurePacket<MonsterAppearNtfList> monsterAppearNtfList = CsProtoResponse.MonsterAppearNtfList;
+                    CsCsProtoStructurePacket<MonsterAppearNtfList> monsterAppearNtfList =
+                        CsProtoResponse.MonsterAppearNtfList;
 
                     string npcID = fields[9];
 
@@ -89,7 +87,7 @@ public class EnterLevelNtfHandler : CsProtoStructureHandler<EnterLevelNtf>
                     });
 
                     //TODO: HACK because it doesnt seems to take a full list of the zone
-                    client.SendCsProtoStructurePacket(monsterAppearNtfList);                    
+                    client.SendCsProtoStructurePacket(monsterAppearNtfList);
                     Thread.Sleep(25);
                 }
             }
