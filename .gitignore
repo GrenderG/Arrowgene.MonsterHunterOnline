@@ -1,4 +1,5 @@
-﻿/.vs
+﻿.DS_Store
+/.vs
 /.idea
 */obj
 */bin
